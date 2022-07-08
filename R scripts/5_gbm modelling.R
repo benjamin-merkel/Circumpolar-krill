@@ -1,14 +1,6 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # load packages
 
-# pckg <- c('raster','fasterize','ncdf4','sf','sp','rgdal','rgeos','terra',
-#           'nngeo','stringr','readxl','classInt','smoothr',
-#           'biomod2','ecospat',"e1071",'spatialEco',
-#           'viridis','RColorBrewer',"scales","remote","angstroms","data.table","fmsb",
-#           'concaveman','RStoolbox',"PresenceAbsence")
-# 
-# for(i in 1:length(pckg)) do.call("library", list(pckg[i]))
-
 library(sf)
 library(sp)
 library(raster)
@@ -337,94 +329,4 @@ legend("bottomright", legend = c("ensemble mean","single model"),
 
 par(opar)
 dev.off()
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# spatial cross validation  ----
-
-EnsembleResult      <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
-
-ccamlr_domains      <- st_read("data/CCAMLR/bm_mpa_planningDomains.shp")
-ccamlr_domains      <- st_transform(ccamlr_domains, south_pole_equal_area.proj)
-ccamlr_domains_crop <- st_intersection(ccamlr_domains, circumpolar)
-
-
-
-#presence        <- st_as_sf(dat.used[dat.used$E.superba %in% 1,])
-presence.test        <- st_as_sf(data)
-# st_crs(presence.test)<- south_pole_equal_area.proj
-presence.test$domain <- as.character(st_intersects(presence.test, ccamlr_domains))
-presence.test$domain <- as.numeric(substr(presence.test$domain,1,1))
-presence.test$predict<- extract(EnsembleResult, as_Spatial(presence.test))
-# # extract 1 cell removed for cells with NAs
-# if(length(presence.test[is.na(presence.test$predict),])>0)   presence.test$predict[is.na(presence.test$predict)] <- unlist(lapply(extract(gbm_ras_mean, presence.test[is.na(presence.test$predict),], method="bilinear", buffer = 10),mean,na.rm=T))
-# # extract 2 cells removed for cells with NAs
-# if(length(presence.test[is.na(presence.test$predict),])>0)   presence.test$predict[is.na(presence.test$predict)] <- unlist(lapply(extract(gbm_ras_mean, presence.test[is.na(presence.test$predict),], method="bilinear", buffer = 20),mean,na.rm=T))
-
-
-# presence.test$background.bin <- extract(background_raster, as_Spatial(presence.test))
-# presence.test$iwc <- extract(iwc, as_Spatial(presence.test))
-presence.test        <- presence.test[!is.na(presence.test$predict),]
-presence.test        <- presence.test[!is.na(presence.test$presence_absence),]
-presence.test        <- presence.test[!is.na(presence.test$domain),]
-
-
-out <- data.frame(domain = 1:9, 
-                      presence.unique=as.numeric(table(factor(presence.test$domain[presence.test$presence_absence==1],levels=c(1:9)))), 
-                      absence.unique =as.numeric(table(factor(presence.test$domain[presence.test$presence_absence==0],levels=c(1:9)))), 
-                      # presence.unique=as.numeric(table(factor(presence.test$domain[presence.test$'E.s'==1 & !duplicated(presence.test$background.bin)],levels=c(1:9)))), 
-                      # absence.unique =as.numeric(table(factor(presence.test$domain[presence.test$'E.s'==0 & !duplicated(presence.test$background.bin)],levels=c(1:9)))), 
-                      #pseudo  =as.numeric(table(presence.test$domain[presence.test$E.superba==2])), 
-                      cbi = NA, 
-                      auc = NA)
-out <- out[out$presence.unique>0,]
-
-#### CBI
-#It is continuous and varies between -1 and +1. 
-#Positive values indicate a model which present predictions are 
-#consistent with the distribution of presences in the evaluation dataset, 
-#values close to zero mean that the model is not different from a random model, 
-#negative values indicate counter predictions, i.e., predicting poor quality 
-#areas where presences are more frequent (Hirzel et al. 2006).
-for(i in out$domain){
-  cat("\r",i)
-  domain.result          <- mask(EnsembleResult, ccamlr_domains[as.numeric(substr(ccamlr_domains$Name, 7,7)) == i,])
-  presence.domain        <- presence.test[presence.test$domain==i & presence.test$presence_absence==1 & presence.test$domain==i,]
-  out$cbi[out$domain==i] <- ecospat.boyce(values(domain.result)[!is.na(values(domain.result))], presence.domain$predict)$cor
-  
-  auc_data               <- data.frame(Observed = (presence.test$presence_absence[presence.test$domain==i]))
-  auc_data               <- cbind(plotID=1,auc_data,Predicted1=presence.test$predict[presence.test$domain==i])
-  out$auc[out$domain==i] <- as.numeric(PresenceAbsence::auc(auc_data,which.model=1)[1])
-}
-out
-table(presence.test$presence_absence)
-
-
-
-layer1 <- EnsembleResult
-if(species == "E.crystallorophias") layer1[ice_duration < 10] <- NA
-ecospat.boyce(values(layer1)[!is.na(values(layer1))], presence.test$predict[presence.test$presence_absence==1])
-
-auc_data<-data.frame(Observed = presence.test$presence_absence)
-auc_data<-cbind(plotID=1,auc_data,Predicted1=presence.test$predict)
-PresenceAbsence::auc(auc_data,which.model=1)
-
-# library(beepr)
-# beep()
-
-
-
-
-
-
-
-gbm_Ens
-
-
-es_bin2 <- EnsembleResult
-es_bin2[es_bin2< 591] <- 0
-es_bin2[es_bin2>0] <- 1
-
-plot(es_bin2)
-
 

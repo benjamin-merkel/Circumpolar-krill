@@ -6,6 +6,7 @@ library(concaveman)
 library(raster)
 library(corrplot)
 library(usdm)
+library(factoextra)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # load mapping data and create polygon for pseudo abscences  -------
@@ -48,7 +49,7 @@ env.subset.list <- c("WOA_temp_0", "WOA_temp_200", "WOA_ox_0")
 env.pca <- subset(env, env.subset.list)
 env.pca <- mask(env.pca, circumpolar)
 env.pca <- scale(env.pca)
-
+names(env.pca) <- c("SST","T200","SOX")
 # correlation btw temp_0, temp_200 and ox_0
 cor <- cor(as.data.frame(env.pca), y = NULL, use = "pairwise.complete.obs", method = c("pearson"))
 summary(abs(cor[upper.tri(cor)]))
@@ -64,6 +65,15 @@ env     <- mask(env, circumpolar)
 env     <- scale(env)
 env$pca <- clim_pca
 
+
+
+png(paste0("figures/PCA of SST-T200-SOX.png"), units="cm",res=500,width=15, height=15)
+fviz_pca_var(pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+dev.off()
 
 
 # set initial selection of relevant covariates
