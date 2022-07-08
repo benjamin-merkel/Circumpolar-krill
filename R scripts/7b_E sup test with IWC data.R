@@ -73,6 +73,23 @@ data2                           <- st_as_sf(data, coords = c("longitude","latitu
 data2$count                     <- 1
 
 
+# number of digits after dot for locations
+decimalplaces <- function(x) {
+  ifelse(abs(x - round(x)) > .Machine$double.eps^0.5,
+         nchar(sub('^\\d+\\.', '', sub('0+$', '', as.character(x)))),
+         0)
+}
+
+data$digits.lon <- decimalplaces(data$longitude)
+data$digits.lat <- decimalplaces(data$latitude)
+
+round(tapply(data$digits.lon, data$Year, mean),1)
+round(tapply(data$digits.lat, data$Year, mean),1)
+
+
+
+
+
 background_raster_lonlat         <- raster(xmn = -180, xmx=180, ymn=-90, ymx=-40, res=1, crs = 4326)
 values(background_raster_lonlat) <- 1:ncell(background_raster_lonlat)
 
