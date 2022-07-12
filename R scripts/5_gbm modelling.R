@@ -157,16 +157,15 @@ gbm_Eval <- get_evaluations(biomod_gbm)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # load models
 # 
-# biomod_gbm <- NULL
-# setwd(gbm_output_dir)
-# temp.path <- list.files(pattern=".models.out", recursive = TRUE)
-# temp.path <- temp.path[grepl(paste0(substr(species,1,3),"."), temp.path)]
-# temp.path <- temp.path[grepl(paste("E.s.1.GBM Dec-Mar circumpolar.models.out"), temp.path)][1]
-# if(exists("myBiomodOuttmp")) { rm(myBiomodOuttmp) }
-# biomod_gbm <- get(load(temp.path))
-# 
-# gbm_Eval<- get_evaluations(biomod_gbm)
+biomod_gbm <- NULL
+setwd(gbm_output_dir)
+temp.path <- list.files(pattern="Dec-Mar.models.out", recursive = TRUE)
+temp.path <- temp.path[grepl(paste0(substr(species,1,3),"."), temp.path)]
+if(exists("myBiomodOuttmp")) { rm(myBiomodOuttmp) }
+biomod_gbm <- get(load(temp.path))
 
+gbm_Eval<- get_evaluations(biomod_gbm)
+summary(gbm_Eval[2,1,,,])
 
 
 

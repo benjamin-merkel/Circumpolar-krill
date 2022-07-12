@@ -108,7 +108,7 @@ es_pol_hatch <- st_as_sf(es_pol) %>%
 es_pol_hatch <- st_sf(geometry = es_pol_hatch)
 
 ec_pol_hatch <- st_as_sf(ec_pol) %>%
-  hatchedLayer(mode = "sfc", pattern = ppatterns[8], density = 15)
+  hatchedLayer(mode = "sfc", pattern = patterns[8], density = 15)
 ec_pol_hatch <- st_sf(geometry = ec_pol_hatch)
 
 
@@ -474,8 +474,9 @@ png("figures/krill proportion of habitat by ocean sectors.png",units="cm",
     res=800, width=8, height=18)
 
 opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
-cols_bar <- c(brewer.pal(3,"Accent"))
-barplot((as.matrix(poly.out[,2:4])),las=1,xaxt="n",ylab="Proportion of habitat", col=cols_bar, border=cols_bar)
+cols_bar <- c(brewer.pal(6,"Accent"))[3:5]
+barplot((as.matrix(poly.out[,2:4])),las=1,xaxt="n",
+        ylab="Proportion of habitat", col=cols_bar, border=1)
 axis(4, at =c(0.15, 0.45, 0.8), labels = c("ATLANTIC OCEAN", "INDIAN OCEAN", "PACIFIC OCEAN"),tick=F, line = -1)
 axis(1, at =c(0.7, 1.9, 3.1), labels = c("Antarctic","Ice","area of"),tick=F, line = -0.5)
 axis(1, at =c(0.7, 1.9, 3.1), labels = c("krill","krill","overlap"),tick=F, line = 0.5)

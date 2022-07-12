@@ -97,13 +97,13 @@ presence.test        <- st_as_sf(e_dat)
 presence.test$domain <- as.character(st_intersects(presence.test, domains))
 presence.test$domain <- as.numeric(substr(presence.test$domain,1,1))
 presence.test$predict<- extract(e_mean, as_Spatial(presence.test))
+pt <- presence.test  <- presence.test[!is.na(presence.test$presence_absence),]
 presence.test        <- presence.test[!is.na(presence.test$predict),]
-presence.test        <- presence.test[!is.na(presence.test$presence_absence),]
 presence.test        <- presence.test[!is.na(presence.test$domain),]
 
 out <- data.frame(domain          = 1:9, 
-                  presence.unique = as.numeric(table(factor(presence.test$domain[presence.test$presence_absence==1],levels=c(1:9)))), 
-                  absence.unique  = as.numeric(table(factor(presence.test$domain[presence.test$presence_absence==0],levels=c(1:9)))), 
+                  presence.unique = as.numeric(table(factor(pt$domain[pt$presence_absence==1],levels=c(1:9)))), 
+                  absence.unique  = as.numeric(table(factor(pt$domain[pt$presence_absence==0],levels=c(1:9)))), 
                   cbi             = NA, 
                   auc             = NA)
 out <- out[out$presence.unique > 0,]
@@ -125,8 +125,6 @@ for(i in out$domain){
   auc_data               <- cbind(plotID=1,auc_data, Predicted1=presence.test$predict[presence.test$domain==i])
   out$auc[out$domain==i] <- as.numeric(PresenceAbsence::auc(auc_data,which.model=1)[1])
 }
-out
-
 
 eb       <- ecospat.boyce(values(e_mean)[!is.na(values(e_mean))], presence.test$predict[presence.test$presence_absence==1])$cor
 auc_data <- data.frame(Observed = presence.test$presence_absence)
@@ -135,12 +133,13 @@ au       <- PresenceAbsence::auc(auc_data,which.model=1)
 
 new.line                 <- out[1,]
 new.line$domain          <- "all"
-new.line$presence.unique <- nrow(presence.test[presence.test$presence_absence==1,])
-new.line$absence.unique  <- nrow(presence.test[presence.test$presence_absence==0,])
+new.line$presence.unique <- nrow(pt[presence.test$presence_absence==1,])
+new.line$absence.unique  <- nrow(pt[presence.test$presence_absence==0,])
 new.line$cbi             <- eb
 new.line$auc             <- au$AUC
 
 out <- rbind(out, new.line)
+out
 write.csv(out, file = paste0("data/",species,"_CCAMLR domain cross validation.csv"))
 
 

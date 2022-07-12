@@ -160,9 +160,10 @@ dev.off()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # spatial correlation in lon lat ------------
 
+dat_ras[dat_ras==0 & is.na(es_mean_lonlat)] <- NA
+dat_ras             <- crop(dat_ras, extent(-180, 180, -90, -50))
 es_mean             <- raster(paste0("data/E.superba_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
 es_mean_lonlat      <- projectRaster(es_mean, dat_ras)
-dat_ras[dat_ras==0 & is.na(es_mean_lonlat)] <- NA
 spat_cor_lonlat     <- raster::corLocal(es_mean_lonlat, dat_ras, ngb = c(11,21), type = "spearman")
 spat_cor2           <- spat_cor_lonlat
 spat_cor2[spat_cor2>1 | spat_cor2 < -1] <- NA
@@ -305,20 +306,6 @@ mtext('b)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 
 plot(st_geometry(circumpolar))
-plot(st_intersection(pol_doy, circumpolar), border="transparent",add=T)
-contour(rast(env$NSIDC_ice_duration), levels = c(10/365,9/12,11/12)*365, lty = c(3,2,1), add=T, lwd = 2, drawlabels = F)
-plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
-plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
-plot(st_geometry(circumpolar),add=T)
-plot(ras_doy,legend.only=T,col=bpy.colors(n = 11, cutoff.tails = 0.1, alpha = 1.0),add=T,
-     axis.args=list(cex.axis=0.8),
-     legend.args=list(text='days since 1 Jan', side=4, font=2, line=2.5, cex=1),
-     legend.width=0.2, legend.shrink=0.75,
-     smallplot=c(0.85,0.87, 0.03,0.17))
-mtext('c)', side=3, line= -2.5, at=-4350, cex=2.5)
-
-
-plot(st_geometry(circumpolar))
 plot(spat_cor3, border="transparent", breaks =seq(-1,1,0.4), pal=brewer.pal(5,"Spectral"),add=T)
 contour(rast(env$NSIDC_ice_duration), levels = c(10/365,9/12,11/12)*365, lty = c(3,2,1), add=T, lwd = 2, drawlabels = F)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
@@ -328,6 +315,20 @@ plot((spat_cor2),legend.only=T,
      col=brewer.pal(5,"Spectral"),breaks=seq(-1,1,0.4),add=T,
      axis.args=list(cex.axis=0.8),
      legend.args=list(text='correlation', side=4, font=2, line=2.5, cex=1),
+     legend.width=0.2, legend.shrink=0.75,
+     smallplot=c(0.85,0.87, 0.03,0.17))
+mtext('c)', side=3, line= -2.5, at=-4350, cex=2.5)
+
+
+plot(st_geometry(circumpolar))
+plot(st_intersection(pol_doy, circumpolar), border="transparent",add=T)
+contour(rast(env$NSIDC_ice_duration), levels = c(10/365,9/12,11/12)*365, lty = c(3,2,1), add=T, lwd = 2, drawlabels = F)
+plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
+plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+plot(st_geometry(circumpolar),add=T)
+plot(ras_doy,legend.only=T,col=bpy.colors(n = 11, cutoff.tails = 0.1, alpha = 1.0),add=T,
+     axis.args=list(cex.axis=0.8),
+     legend.args=list(text='days since 1 Jan', side=4, font=2, line=2.5, cex=1),
      legend.width=0.2, legend.shrink=0.75,
      smallplot=c(0.85,0.87, 0.03,0.17))
 mtext('d)', side=3, line= -2.5, at=-4350, cex=2.5)
