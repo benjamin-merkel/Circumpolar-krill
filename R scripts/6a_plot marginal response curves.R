@@ -1,5 +1,17 @@
 library(raster)
 library(biomod2)
+library(concaveman)
+library(sf)
+
+sf_use_s2(F)
+
+grat.50S           <- st_read("data/map data/ne_50m_graticules_5.shp")
+grat.50S           <- st_transform(grat.50S[grat.50S$direction=="S" & grat.50S$degrees==50,][,1], south_pole_equal_area.proj)
+grat.50S           <- rbind(grat.50S, grat.50S[1,])
+grat.50S           <- concaveman(grat.50S) # works
+grat.50S           <- st_buffer(grat.50S,dist = 0)
+circumpolar        <- st_zm(grat.50S, drop = T,what = "ZM")
+
 
 env.selected <- readRDS("data/Environmental covariates selected.rds")
 
@@ -34,6 +46,8 @@ Biomodresponse_Ec <- response.plot2(
   do.bivariate = FALSE, fixed.var.metric = 'mean', plot=F, legend = F,
   data_species = get_formal_data(biomod_gbm_Ec, 'resp.var')
 )
+
+setwd(base_dir)
 
 
 
@@ -90,14 +104,19 @@ chosen.pred <- c("MLD","PCA","DIS",'SSI')
 env          <- readRDS("data/Environmental covariate stack.rds")
 env.subset   <- subset(env, c("Pellichero_ml_depth","dis_1000",'WOA_si_0'))
 names(env.subset) <- c("MLD","DIS","SSI")
+env.subset   <- mask(env.subset, circumpolar)
 
 env.sd <- env.mean <- vector(mode="list")
 for(i in 1:length(chosen.pred[chosen.pred!="PCA"])) {
   env.mean[[i]] <- mean(values(raster::subset(env.subset, chosen.pred[chosen.pred!="PCA"][i])), na.rm=T)
-  env.sd[[i]]   <- sd(values(raster::subset(env.subset, chosen.pred[chosen.pred!="PCA"][i])), na.rm=T)
+  env.sd[[i]]   <- sd(values(raster::subset(env.subset, chosen.pred[chosen.pred!="PCA"][i]) - env.mean[[i]]), na.rm=T)
 }
 names(env.mean) <- names(env.sd) <- chosen.pred[chosen.pred!="PCA"]
 
+# ssi <- env[["WOA_si_0"]]
+# ssi_scaled <- scale(ssi)
+# ssi_reversed <- (ssi_scaled * env.sd[[3]]) + env.mean[[3]]
+# ssi == ssi_reversed
 
 
 setwd(base_dir)
@@ -128,7 +147,8 @@ for(i in chosen.pred){
        xlim=c(min(c(x.Es, x.Ec)), max(c(x.Es, x.Ec))), yaxt="n", xaxt="n",
        main="",las=1, ylab="",xlab="",cex.axis=0.8, col="white")
   if(i %in% c("MLD", "DIS")) axis(2, las=1, cex.axis=0.8)
-  if(!i %in% c("MLD", "PCA")) axis(1, las=1, cex.axis=0.8)
+  if(!i %in% c("MLD", "PCA", "DIS")) axis(1, las=1, cex.axis=0.8)
+  if(i %in% c("DIS")) axis(1, las=1, cex.axis=0.8, at = seq(-400,1200,400))
   polygon(c(x.Ec, rev(x.Ec)), c(response_Ec$min, rev(response_Ec$max))-0.1, 
           border="transparent", col=rgb(0,0,1,0.1))
   polygon(c(x.Es, rev(x.Es)), c(response_Es$min, rev(response_Es$max))+0.1, 
@@ -169,7 +189,6 @@ for(i in chosen.pred){
   rug(x.Es, side = 3, col = 2)
 }
 
-par(opar)
 dev.off()
 
 
