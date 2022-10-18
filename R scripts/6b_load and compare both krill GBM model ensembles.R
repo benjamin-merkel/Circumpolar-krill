@@ -287,13 +287,24 @@ round(dom.out$e.sup.area/sum(dom.out$e.sup.area),2)
 dom.out3 <- t(as.matrix(dom.out)[,c(2,4,3)])
 colnames(dom.out3)<-1:9
 
-png("figures/krill habitat area by planning area.png",units="cm",res=800,width=10, height=10)
-par(mfrow=c(1,1),mar=c(2,5,1,1))
+png("figures/krill habitat area by planning area v2.png",units="cm",res=800,width=17, height=10)
+par(mfrow=c(1,2),mar=c(2,5,0.5,0.5))
 cols_used <- c(brewer.pal(5,"Set3")[c(2,4,5)])
 cols_used <- c(brewer.pal(5,"Set3")[c(4,2,5)])
-barplot(dom.out3,col=cols_used, border="white",
-        ylab="10^6 km^2",main="",las=1)
-# legend("topright",pch=20,pt.cex=3,col=cols_used, legend=c("E.cry","overlap","E.sup"))
+barplot(dom.out3,col=cols_used, border=grey(0.2), 
+        ylab=expression(paste(10^6," ", km^2,sep="")),
+        main="",las=1)
+par(mar=c(0.5,0.5,4,0.5))
+plot(st_geometry(circumpolar))
+plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3, lwd=1.5)
+plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
+plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+plot(circumpolar, add=T)
+plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
+legend("topleft" ,pch=22,pt.cex=3,col=grey(0.2),pt.bg=rev(cols_used), inset=c(0,-0.23), xpd=TRUE, 
+       legend=c("Ice krill","Overlap","Antarctic krill"), box.col ="transparent")
+
+par(opar)
 dev.off()
 
 
@@ -416,13 +427,13 @@ png("figures/krill proportion of habitat longitudinal around the continent smoot
 opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
 col_used <- c(brewer.pal(5,"Set3")[c(4,5,2)])
 plot(movingFun(poly.out2[,1],6,circular = T),type="l",
-     xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.05),col=col_used[1],lwd=3)
+     xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.06),col=col_used[1],lwd=3)
 lines(movingFun(poly.out2[,2],6,circular = T),type="l",col=col_used[2],lwd=3)
 # lines(movingFun(poly.out2[,3],6,circular = T),type="l",col=col_used[3],lwd=3)
 abline(v=c(21, 45),lty=3)
 axis(1,at=seq(1,74,4),labels = lons5.lab[,1][seq(1,74,4)],las=2)
 # invisible(lapply(seq(1,74,4), function(i) {axis(1, at=i, labels = parse(text=lons5.lab[,1][i]),las=2)}))
-axis(3,at=c(11,33,60),labels = c("ATLANTIC OCEAN","INDIAN OCEAN","PACIFIC OCEAN"),las=1, tick=F,line = -1)
+axis(3,at=c(11,33,60),labels = c("ATLANTIC SECTOR","INDIAN SECTOR","PACIFIC SECTOR"),las=1, tick=F,line = -1)
 legend("topright",legend=c("Antarctic krill","Ice krill"),pt.bg=col_used[1:2],pch=22,box.col="transparent",bg="transparent")
 par(opar)
 
@@ -477,7 +488,7 @@ opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
 cols_bar <- c(brewer.pal(6,"Accent"))[3:5]
 barplot((as.matrix(poly.out[,2:4])),las=1,xaxt="n",
         ylab="Proportion of habitat", col=cols_bar, border=1)
-axis(4, at =c(0.15, 0.45, 0.8), labels = c("ATLANTIC OCEAN", "INDIAN OCEAN", "PACIFIC OCEAN"),tick=F, line = -1)
+axis(4, at =c(0.15, 0.45, 0.8), labels = c("ATLANTIC SECTOR", "INDIAN SECTOR", "PACIFIC SECTOR"),tick=F, line = -1)
 axis(1, at =c(0.7, 1.9, 3.1), labels = c("Antarctic","Ice","area of"),tick=F, line = -0.5)
 axis(1, at =c(0.7, 1.9, 3.1), labels = c("krill","krill","overlap"),tick=F, line = 0.5)
 par(opar)

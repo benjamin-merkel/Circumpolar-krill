@@ -80,12 +80,12 @@ dev.off()
 env.init.selected <- subset(env, c(
   "NSIDC_ice_duration",'NSIDC_ice_retreat',"NSIDC_ice_conc","NSIDC_ice_pers","NSIDC_spring_edge",
   "WOA_sal_0","WOA_sal_200",
-  "OCCCI_bd","OCCCI_bi","OCCCI_bt","OCCCI_bm",
+  "OCCCI_bd","OCCCI_bm",
   "WOA_si_0",
   "bath","dis_1000",
   "Pellichero_ml_depth", 'pca'))
 
-names(env.init.selected) <- c("ICEDUR", "ICEMELT", "ICECONC", "ICEPERS", "MIZ", "SSS", "S200", "BD", "BI", "BT", "BM", "SSI", "BATH", "DIS", "MLD", "PCA")
+names(env.init.selected) <- c("ICEDUR", "ICEMELT", "ICECONC", "ICEPERS", "MIZ", "SSS", "S200", "BD", "BM", "SSI", "BATH", "DIS", "MLD", "PCA")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # test colinearity of covariates across model domain --------
@@ -95,10 +95,6 @@ env.cor.test <- crop(env.init.selected,model.domain)
 
 
 # test colinearity of covariates in model domain using VIF
-# vif2.select <- vifcor(env.cor.test, th = 0.7)
-# vif2.select
-
-vif3.select <- vifstep(env.cor.test, th = 10)
 vif3.select <- vifstep(env.cor.test, th = 10)
 vif3.select
 

@@ -131,6 +131,7 @@ for(i in chosen.pred){
                             min = tapply(xx_Es$pred.val, xx_Es$expl.val, min),
                             max = tapply(xx_Es$pred.val, xx_Es$expl.val, max))
   response_Es$x <- as.numeric(as.character(rownames(response_Es)))
+  if(i == "PCA") response_Es$x = -response_Es$x
   
   xx_Ec <- Biomodresponse_Ec[Biomodresponse_Ec$expl.name==i,]
   xx_Ec <- xx_Ec[complete.cases(xx_Ec),]
@@ -139,6 +140,7 @@ for(i in chosen.pred){
                             min = tapply(xx_Ec$pred.val, xx_Ec$expl.val, min),
                             max = tapply(xx_Ec$pred.val, xx_Ec$expl.val, max))
   response_Ec$x <- as.numeric(as.character(rownames(response_Ec)))
+  if(i == "PCA") response_Ec$x = -response_Ec$x
   
   if(i!="PCA") x.Es <- (response_Es$x*env.sd[[i]])+env.mean[[i]] else x.Es <- response_Es$x
   if(i!="PCA") x.Ec <- (response_Ec$x*env.sd[[i]])+env.mean[[i]] else x.Ec <- response_Ec$x
@@ -184,6 +186,8 @@ for(i in chosen.pred){
   
   if(i!="PCA") x.Es <- (data.frame(dat_Es)[,i]*env.sd[[i]])+env.mean[[i]] else x.Es <- data.frame(dat_Es)[,i]
   if(i!="PCA") x.Ec <- (data.frame(dat_Ec)[,i]*env.sd[[i]])+env.mean[[i]] else x.Ec <- data.frame(dat_Ec)[,i]
+  if(i=="PCA") x.Es = -x.Es
+  if(i=="PCA") x.Ec = -x.Ec
   
   rug(x.Ec, side = 1, col = 4)
   rug(x.Es, side = 3, col = 2)
