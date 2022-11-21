@@ -6,6 +6,7 @@ library(spatialEco)
 library(concaveman)
 library(cartography)
 library(dplyr)
+library(scales)
 
 sf_use_s2(F)
 
@@ -42,6 +43,25 @@ ccamlr_domains_crop <- st_intersection(ccamlr_domains, circumpolar)
 rownames(ccamlr_domains) <- ccamlr_domains$OBJECTID <- ccamlr_domains$Index
 
 
+PF_fronts    <- data.frame(lon = lonPF, lat = latPF, name = "Polar Front (PF)")
+SACCF_fronts <- data.frame(lon = lonSACCF, lat = latSACCF, name = "Southern Antarctic Circumpolar Current Front (SACCf)")
+SAF_fronts   <- data.frame(lon = lonSAF, lat = latSAF, name = "Subantarctic Front (SAF)")
+SB_fronts    <- data.frame(lon = lonSB, lat = latSB, name = "Southern Boundary (SB)")
+
+PF_fronts <- st_as_sf(PF_fronts[!is.na(PF_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+PF_fronts <- st_transform(st_combine(PF_fronts), south_pole_equal_area.proj)
+PF_fronts <- st_cast(PF_fronts, "MULTILINESTRING")
+SACCF_fronts <- st_as_sf(SACCF_fronts[!is.na(SACCF_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+SACCF_fronts <- st_transform(st_combine(SACCF_fronts), south_pole_equal_area.proj)
+SACCF_fronts <- st_cast(SACCF_fronts, "MULTILINESTRING")
+SAF_fronts <- st_as_sf(SAF_fronts[!is.na(SAF_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+SAF_fronts <- st_transform(st_combine(SAF_fronts), south_pole_equal_area.proj)
+SAF_fronts <- st_cast(SAF_fronts, "MULTILINESTRING")
+SB_fronts <- st_as_sf(SB_fronts[!is.na(SB_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+SB_fronts <- st_transform(st_combine(SB_fronts), south_pole_equal_area.proj)
+SB_fronts <- st_cast(SB_fronts, "MULTILINESTRING")
+
+
 env <-readRDS("data/Environmental covariate stack.rds")
 env[["NSIDC_ice_retreat"]][env[["NSIDC_ice_retreat"]]==46] <- NA # 15 Feb
 env[["NSIDC_ice_advance"]][env[["NSIDC_ice_advance"]]==365+45] <- NA # 14 Feb
@@ -60,17 +80,19 @@ shelf[shelf < 1]     <- 0
 species                 <- "E.crystallorophias"
 ec_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
 ec_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
+ec_rast <- readRDS(paste0("data/",species,"_circumpolar_GBM_10raster_predictions_Dec-Mar.rds"))
 ec_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
 ec_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
 
 
-icer <- crop(icer, ec_mean)
-ec_mean[is.na(icer)]<-NA
-ec_sd[is.na(icer)]<-NA
+# icer <- crop(icer, ec_mean)
+# ec_mean[is.na(icer)]<-NA
+# ec_sd[is.na(icer)]<-NA
 
 species                 <- "E.superba" 
 es_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
 es_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
+es_rast <- readRDS(paste0("data/",species,"_circumpolar_GBM_10raster_predictions_Dec-Mar.rds"))
 es_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
 es_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
 
@@ -98,6 +120,24 @@ e_data[!is.na(e_data)] <- 1
 
 es_pol <- rasterToPolygons(es_bin, fun = function(x) {x==1}, n = 16, dissolve = T)
 ec_pol <- rasterToPolygons(ec_bin, fun = function(x) {x==2}, n = 16, dissolve = T)
+# names(es_pol) <- names(ec_pol) <- "habitat"
+# st_write(st_as_sf(es_pol), "data/Antarctic krill habitat.shp")
+# st_write(st_as_sf(ec_pol), "data/Ice krill habitat.shp")
+
+es_rast_bin <- ec_rast_bin <- vector(mode="list")
+for(i in 1:10){
+  es_rast_bin[[i]] <- es_rast[[1]]
+  es_rast_bin[[i]][es_rast_bin[[i]] < es_eval[2,2,1,,1][i]] <- 0
+  es_rast_bin[[i]][es_rast_bin[[i]] > 0] <- 1
+  
+  ec_rast_bin[[i]] <- ec_rast[[1]]
+  ec_rast_bin[[i]][ec_rast_bin[[i]] < ec_eval[2,2,1,,1][i]] <- 0
+  ec_rast_bin[[i]][ec_rast_bin[[i]] > 0] <- 1
+}
+es_rast_bin <- stack(es_rast_bin)
+ec_rast_bin <- stack(ec_rast_bin)
+ec_rast_bin[is.na(icer)]<-NA
+
 
 
 patterns <- c("diamond","grid","hexagon","horizontal", "vertical",
@@ -387,9 +427,16 @@ poly5 <- st_transform(poly5, south_pole_equal_area.proj)
 
 poly.out <- data.frame(poly = 1:72,
                        e.sup.area = 0,
+                       e.sup.area.min = 0,
+                       e.sup.area.max = 0,
+                       e.sup.area.sd = 0,
                        e.cry.area = 0,
+                       e.cry.area.min = 0,
+                       e.cry.area.max = 0,
+                       e.cry.area.sd = 0,
                        over.area  = 0,
                        total.area = 0)
+
 for(i in 1:72){
   cat("\r",i," of ",72,"  ")
   poly.result <- mask(e_overlap, as_Spatial(st_zm(poly5[i])))
@@ -397,19 +444,50 @@ for(i in 1:72){
   poly.out$over.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[4]))*100/1000000
   poly.out$e.sup.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[2]))*100/1000000
   poly.out$e.cry.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[3]))*100/1000000
+  
+  for(j in 1:10) {
+    rr <- sum(as.numeric(table(factor(values(mask(es_rast_bin[[j]], as_Spatial(st_zm(poly5[i])))),levels=c(0:1)))[2]))*100/1000000
+    if(j == 1) es_rr <- rr else es_rr <- c(es_rr, rr)
+  }
+  for(j in 1:10) {
+    rr <- sum(as.numeric(table(factor(values(mask(ec_rast_bin[[j]], as_Spatial(st_zm(poly5[i])))),levels=c(0:1)))[2]))*100/1000000
+    if(j == 1) ec_rr <- rr else ec_rr <- c(ec_rr, rr)
+  }
+  
+  poly.out$e.sup.area.min[i] <- min(es_rr)
+  poly.out$e.sup.area.max[i] <- max(es_rr)
+  poly.out$e.sup.area.sd[i]  <- sd(es_rr)
+  
+  poly.out$e.cry.area.min[i] <- min(ec_rr)
+  poly.out$e.cry.area.max[i] <- max(ec_rr)
+  poly.out$e.cry.area.sd[i]  <- sd(ec_rr)
+  
 }
 poly.out[is.na(poly.out)]<-0
-
+poly.out$e.sup.area.se <- poly.out$e.sup.area.sd/sqrt(10)
+poly.out$e.cry.area.se <- poly.out$e.cry.area.sd/sqrt(10)
 
 # relative use of each chunk
-poly.out2 <- poly.out
-poly.out2[,2] <- poly.out2[,2]+poly.out2[,4]
-poly.out2[,3] <- poly.out2[,3]+poly.out2[,4]
-poly.out2[,2] <- poly.out2[,2]/sum(poly.out2[,2])
-poly.out2[,3] <- poly.out2[,3]/sum(poly.out2[,3])
-poly.out2[,4] <- poly.out2[,4]/sum(poly.out2[,4])
-poly.out2 <- poly.out2[,c(2,3,4)]
-names(poly.out2) <- c("E superba","E cryst","overlap")
+poly.out2     <- poly.out
+poly.out2$e.sup.area <- poly.out2$e.sup.area + poly.out2$over.area
+poly.out2$e.cry.area <- poly.out2$e.cry.area + poly.out2$over.area
+poly.out2$e.sup.rel  <- poly.out2$e.sup.area/sum(poly.out2$e.sup.area)
+poly.out2$e.cry.rel  <- poly.out2$e.cry.area/sum(poly.out2$e.cry.area)
+poly.out2$over.rel   <- poly.out2$over.area/sum(poly.out2$over.area)
+
+poly.out2$e.sup.rel.uci  <- (poly.out2$e.sup.area + (1.96 * poly.out2$e.sup.area.se))/sum(poly.out2$e.sup.area)
+poly.out2$e.sup.rel.lci  <- (poly.out2$e.sup.area - (1.96 * poly.out2$e.sup.area.se))/sum(poly.out2$e.sup.area)
+poly.out2$e.cry.rel.uci  <- (poly.out2$e.cry.area + (1.96 * poly.out2$e.cry.area.se))/sum(poly.out2$e.cry.area)
+poly.out2$e.cry.rel.lci  <- (poly.out2$e.cry.area - (1.96 * poly.out2$e.cry.area.se))/sum(poly.out2$e.cry.area)
+poly.out2$e.cry.rel.lci[poly.out2$e.cry.rel.lci < 0] <- 0
+
+poly.out2$e.sup.min.rel  <- poly.out2$e.sup.area.min/sum(poly.out2$e.sup.area)
+poly.out2$e.sup.max.rel  <- poly.out2$e.sup.area.max/sum(poly.out2$e.sup.area)
+poly.out2$e.cry.min.rel  <- poly.out2$e.cry.area.min/sum(poly.out2$e.cry.area)
+poly.out2$e.cry.max.rel  <- poly.out2$e.cry.area.max/sum(poly.out2$e.cry.area)
+
+# poly.out2 <- poly.out2[,c(2,3,4)]
+# names(poly.out2) <- c("E superba","E cryst","overlap")
 
 
 lons5.lab <- lons5
@@ -421,14 +499,24 @@ lons5.lab$x2[lons5.lab$x2 < 0] <- paste0(lons5.lab$x2[lons5.lab$x2 < 0], "W")
 lons5.lab$x2 <- gsub("-","",lons5.lab$x2)
 
 
-png("figures/krill proportion of habitat longitudinal around the continent smoothed.png",units="cm",
+png("figures/krill proportion of habitat longitudinal around the continent smoothed 2.png",units="cm",
     res=800, width=20, height=12)
 
 opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
 col_used <- c(brewer.pal(5,"Set3")[c(4,5,2)])
-plot(movingFun(poly.out2[,1],6,circular = T),type="l",
+plot(movingFun(poly.out2$e.sup.rel,6,circular = T),type="l",
      xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.06),col=col_used[1],lwd=3)
-lines(movingFun(poly.out2[,2],6,circular = T),type="l",col=col_used[2],lwd=3)
+# polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.sup.min.rel,6,circular = T), rev(movingFun(poly.out2$e.sup.max.rel,6,circular = T))),
+#         col = alpha(col_used[1], 0.2), border= "transparent")
+polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.sup.rel.lci,6,circular = T), rev(movingFun(poly.out2$e.sup.rel.uci,6,circular = T))),
+        col = alpha(col_used[1], 0.2), border= "transparent")
+lines(movingFun(poly.out2$e.sup.rel,6,circular = T),type="l",col=col_used[1],lwd=3)
+
+# polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.cry.min.rel,6,circular = T), rev(movingFun(poly.out2$e.cry.max.rel,6,circular = T))),
+#         col = alpha(col_used[2], 0.2), border= "transparent")
+polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.cry.rel.lci,6,circular = T), rev(movingFun(poly.out2$e.cry.rel.uci,6,circular = T))),
+        col = alpha(col_used[2], 0.2), border= "transparent")
+lines(movingFun(poly.out2$e.cry.rel,6,circular = T),type="l",col=col_used[2],lwd=3)
 # lines(movingFun(poly.out2[,3],6,circular = T),type="l",col=col_used[3],lwd=3)
 abline(v=c(21, 45),lty=3)
 axis(1,at=seq(1,74,4),labels = lons5.lab[,1][seq(1,74,4)],las=2)
@@ -503,14 +591,22 @@ dev.off()
 
 # 4 panel figure
 
-png("figures/E.superba and E.crystallorophias 4 panel figure.png", res = 800, width=40, height = 40, units="cm")
+png("figures/E.superba and E.crystallorophias 4 panel figure v2.png", res = 800, width=40, height = 40, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 plot(st_geometry(model.domain),lty=2)  
 plot(mask(es_mean, model.domain),zlim=c(0,1000), add=T, legend =F)
-plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
+# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=0.7, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2000, -2800, "ICE",cex=0.7, col=1)
+
 plot(st_geometry(circumpolar),add=T)
 plot(es_mean,legend.only = T, zlim=c(0,1000), 
      axis.args=list(at=c(0,1000), labels= c(0, 1),
@@ -523,9 +619,17 @@ mtext('a)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 plot(st_geometry(circumpolar))
 plot(mask(ec_mean, model.domain),zlim=c(0,1000), add=T, legend =F)
-plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
+# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=0.7, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2000, -2800, "ICE",cex=0.7, col=1)
+
 plot(st_geometry(circumpolar),add=T)
 mtext('b)', side=3, line= -2.5, at=-4350, cex=2.5)
 
@@ -562,6 +666,8 @@ dev.off()
 
 
 
+
+
 # 2 panel figure
 
 png("figures/E.superba and E.crystallorophias sd.png", res = 800, width=40, height = 20, units="cm")
@@ -569,12 +675,20 @@ opar <- par(mfrow=c(1,2), mar=c(0,0,0,0))
 
 col_sd <- brewer.pal(9, "Purples")
 plot(st_geometry(model.domain),lty=2)  
-plot(mask(es_sd, model.domain),zlim=c(0,250), add=T, legend =F, col=col_sd)
-plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
+plot(mask(es_sd, model.domain),zlim=c(0,300), add=T, legend =F, col=col_sd)
+# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=0.7, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2000, -2800, "ICE",cex=0.7, col=1)
+
 plot(st_geometry(circumpolar),add=T)
-plot(es_sd/1000, legend.only = T, zlim=c(0,0.25), col=col_sd, 
+plot(es_sd/1000, legend.only = T, zlim=c(0,0.3), col=col_sd, 
      axis.args=list(cex.axis=1,tick=F,line=-0.2),
      legend.args=list(text="standard deviation", side=4, font=2, line=2.5, cex=1),
      legend.width=0.2, legend.shrink=0.75,
@@ -583,12 +697,20 @@ mtext('a)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 
 plot(st_geometry(circumpolar))
-plot(mask(ec_sd, model.domain),zlim=c(0,250), add=T, legend =F, col=col_sd)
-plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
+plot(mask(ec_sd, model.domain),zlim=c(0,300), add=T, legend =F, col=col_sd)
+# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=0.7, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2000, -2800, "ICE",cex=0.7, col=1)
+
 plot(st_geometry(circumpolar),add=T)
-plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
+# plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
 mtext('b)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 par(opar)

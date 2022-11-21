@@ -12,6 +12,7 @@ for(i in 1:length(pckg)) do.call("library", list(pckg[i]))
 library(sf)
 library(raster)
 library(plotrix)
+library(ncdf4)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -35,12 +36,46 @@ land               <- st_read("data/map data/ne_10m_land.shp")
 land               <- st_transform(st_crop(land, extent(-180,180,-90,-40)), south_pole_equal_area.proj)
 land               <- st_intersection(land, circumpolar)
 
-fronts             <- st_read("data/map data/SouthernOceanFronts.shp")
-fronts             <- st_transform(fronts, south_pole_equal_area.proj)
-fronts             <- st_intersection(fronts, circumpolar)
-PF_fronts          <- fronts[fronts$NAME == "Polar Front (PF)",]
-SAF_fronts         <- fronts[fronts$NAME == "Subantarctic Front (SAF)",]
-sACCf_fronts       <- fronts[fronts$NAME == "Southern Antarctic Circumpolar Current Front (sACCf)",]
+fr       <- nc_open("data/map data/Park 2019 fronts.nc")
+lonPF    <- ncvar_get(fr, "LonPF")
+latPF    <- ncvar_get(fr, "LatPF")
+lonSACCF <- ncvar_get(fr, "LonSACCF")
+latSACCF <- ncvar_get(fr, "LatSACCF")
+lonSAF   <- ncvar_get(fr, "LonSAF")
+latSAF   <- ncvar_get(fr, "LatSAF")
+lonSB    <- ncvar_get(fr, "LonSB")
+latSB    <- ncvar_get(fr, "LatSB")
+
+  
+PF_fronts    <- data.frame(lon = lonPF, lat = latPF, name = "Polar Front (PF)")
+SACCF_fronts <- data.frame(lon = lonSACCF, lat = latSACCF, name = "Southern Antarctic Circumpolar Current Front (SACCf)")
+SAF_fronts   <- data.frame(lon = lonSAF, lat = latSAF, name = "Subantarctic Front (SAF)")
+SB_fronts    <- data.frame(lon = lonSB, lat = latSB, name = "Southern Boundary (SB)")
+
+PF_fronts <- st_as_sf(PF_fronts[!is.na(PF_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+PF_fronts <- st_transform(st_combine(PF_fronts), south_pole_equal_area.proj)
+PF_fronts <- st_cast(PF_fronts, "MULTILINESTRING")
+SACCF_fronts <- st_as_sf(SACCF_fronts[!is.na(SACCF_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+SACCF_fronts <- st_transform(st_combine(SACCF_fronts), south_pole_equal_area.proj)
+SACCF_fronts <- st_cast(SACCF_fronts, "MULTILINESTRING")
+SAF_fronts <- st_as_sf(SAF_fronts[!is.na(SAF_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+SAF_fronts <- st_transform(st_combine(SAF_fronts), south_pole_equal_area.proj)
+SAF_fronts <- st_cast(SAF_fronts, "MULTILINESTRING")
+SB_fronts <- st_as_sf(SB_fronts[!is.na(SB_fronts$lat),], coords = c('lon','lat'), crs =4326, agr = "name")
+SB_fronts <- st_transform(st_combine(SB_fronts), south_pole_equal_area.proj)
+SB_fronts <- st_cast(SB_fronts, "MULTILINESTRING")
+
+plot(PF_fronts)
+plot(SACCF_fronts,add=T,lty=2)
+plot(SAF_fronts,add=T,lty=3)
+plot(SB_fronts,add=T,lty=4)
+
+# fronts             <- st_read("data/map data/SouthernOceanFronts.shp")
+# fronts             <- st_transform(fronts, south_pole_equal_area.proj)
+# fronts             <- st_intersection(fronts, circumpolar)
+# PF_fronts          <- fronts[fronts$NAME == "Polar Front (PF)",]
+# SAF_fronts         <- fronts[fronts$NAME == "Subantarctic Front (SAF)",]
+# sACCf_fronts       <- fronts[fronts$NAME == "Southern Antarctic Circumpolar Current Front (sACCf)",]
 
 background_polygon <- st_difference((grat.50S),st_geometry(ice_shelf))
 background_polygon <- st_difference(background_polygon,st_geometry(land))
@@ -85,7 +120,7 @@ sea.col <- brewer.pal(9,"Purples")[9]
 
 
 # setwd(maud_directory)
-png("figures/study area v3.png", res = 800, width=20, height = 20, units="cm")
+png("figures/study area v4.png", res = 800, width=20, height = 20, units="cm")
 par(mar=rep(0,4))
 plot(st_geometry(grat),lty=2)  
 plot(mask(bath, circumpolar),  zlim=c(-1000,0), add=T, legend =F, col=rev(bb[2]))
@@ -96,10 +131,12 @@ plot(mask(bath, circumpolar),  zlim=c(-5000,-4000), add=T, legend =F, col=rev(bb
 plot(mask(bath, circumpolar),  zlim=c(-10000,-5000), add=T, legend =F, col=rev(bb[7]))
 plot(st_geometry(ccamlr_mpa_crop), add=T, border=grey(0.4),lty=3, lwd=1.3)
 
-plot(st_geometry(PF_fronts), add=T, border=1,lty=2, lwd=1)
-text(-1600, -3350, "PF",cex=0.9, col=1)
-plot(st_geometry(sACCf_fronts), add=T, border=1,lty=1, lwd=1)
-text(-600, -2950, "sACCf",cex=0.9, col=1)
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(0, -3050, "SACCF",cex=0.7, col=1)
+# plot(st_geometry(SB_fronts), add=T, border=1,lty=1, lwd=1)
+# text(-400, -2950, "SB",cex=0.9, col=1,lty=3)
 
 
 plot(st_geometry(ice_shelf),add=T,border=grey(0.3),col=grey(1),lwd=0.9)
@@ -111,7 +148,9 @@ arctext(x = "ATLANTIC SECTOR", center = c(0, 0), radius = 4500, middle = 1.2*pi/
 arctext(x = "PACIFIC SECTOR", center = c(0, 0), radius = 4500, middle = -1.5*pi/2)
 
 plot(st_geometry(st_point_on_surface(ccamlr_mpa_crop)), add=T, 
-     col=grey(0), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1)
+     col=grey(0.1), lty=3,pch=as.character(c(9,'',7,3,'',4,5,6,8)), cex=1)
+text(-2350, 2100, "1", cex=1, col=grey(0.1))
+text(-1900, 3300, "2", cex=1, col=grey(0.1))
 
 
 
@@ -124,43 +163,44 @@ for(i in 1:3) {
 
 # Islands
 # text(-2200, 3250, "South Georgia",cex=0.9, col=island.col,font=4)
-island.cex = 0.7
-text(-2450, 3400, "South",cex=island.cex, col=island.col,font=4)
-text(-2450, 3250, "Georgia",cex=island.cex, col=island.col,font=4)
+island.cex = 0.5
+island.font = 4
+text(-2500, 3360, "South",cex=island.cex, col=island.col,font=island.font)
+text(-2500, 3210, "Georgia",cex=island.cex, col=island.col,font=island.font)
 
-text(-2200, 2550, "South Orkney",cex=island.cex, col=island.col,font=4)
-text(-2200, 2400, "islands",cex=island.cex, col=island.col,font=4)
+text(-2200, 2550, "South Orkney",cex=island.cex, col=island.col,font=island.font)
+text(-2200, 2400, "Islands",cex=island.cex, col=island.col,font=island.font)
 
-text(-2800, 1200, "WAP", cex=island.cex, col=island.col,font=4)
+text(-2450, 1850, "WAP", cex=island.cex+0.1, col=island.col,font=island.font)
 
-text(400, 3800, "Bouvet island", cex=island.cex, col=island.col,font=4)
+text(400, 3800, "Bouvet Island", cex=island.cex, col=island.col,font=island.font)
 
-text(-2400, -100, "Peter I",cex=island.cex, col=island.col,font=4)
-text(-2400, -250, "Island",cex=island.cex, col=island.col,font=4)
+text(-2200, -100, "Peter I",cex=island.cex, col=island.col,font=island.font)
+text(-2200, -250, "Island",cex=island.cex, col=island.col,font=island.font)
 
-text(-1250, 3300, "South",cex=island.cex, col=island.col,font=4)
-text(-1100, 3150, "Sandwich",cex=island.cex, col=island.col,font=4)
-text(-1200, 3000, "Islands",cex=island.cex, col=island.col,font=4)
+text(-1350, 3300, "South",cex=island.cex, col=island.col,font=island.font)
+text(-1200, 3150, "Sandwich",cex=island.cex, col=island.col,font=island.font)
+text(-1300, 3000, "Islands",cex=island.cex, col=island.col,font=island.font)
 
-text(700, -2650, "Balleny",cex=island.cex, col=island.col,font=4)
-text(700, -2800, "Islands",cex=island.cex, col=island.col,font=4)
+text(700, -2650, "Balleny",cex=island.cex, col=island.col,font=island.font)
+text(700, -2800, "Islands",cex=island.cex, col=island.col,font=island.font)
 
-text(-250, -2450, "Scott",cex=island.cex, col=island.col,font=4)
-text(-250, -2600, "Island",cex=island.cex, col=island.col,font=4)
+text(-250, -2450, "Scott",cex=island.cex, col=island.col,font=island.font)
+text(-250, -2600, "Island",cex=island.cex, col=island.col,font=island.font)
 
-text(3850, 1050, "Kerguelen", cex=island.cex, col=island.col,font=4)
-text(3850, 900, "Islands", cex=island.cex, col=island.col,font=4)
+text(3850, 1050, "Kerguelen", cex=island.cex, col=island.col,font=island.font)
+text(3850, 900, "Islands", cex=island.cex, col=island.col,font=island.font)
 
 
 #Seas
-sea.cex = 0.9
+sea.cex = 0.7
 text(-1500, 1900, "Weddell", cex=sea.cex, col=sea.col)
 text(-1500, 1700, "Sea", cex=sea.cex, col=sea.col)
 
 text(100, 3350, "Lazarev", cex=sea.cex, col=sea.col)
 text(100, 3150, "Sea", cex=sea.cex, col=sea.col)
 
-text(2000, 2400, "Cosmonauts", cex=sea.cex, col=sea.col)
+text(2000, 2400, "Cosmonaut", cex=sea.cex, col=sea.col)
 text(2000, 2200, "Sea", cex=sea.cex, col=sea.col)
 
 text(2600,  800, "Prydz", cex=sea.cex, col=sea.col)
@@ -169,8 +209,8 @@ text(2600,  600, "Bay", cex=sea.cex, col=sea.col)
 text(2900,  -1000, "Mawson", cex=sea.cex, col=sea.col)
 text(2900,  -1200, "Sea", cex=sea.cex, col=sea.col)
 
-text(2300,  -2000, "D'Urville", cex=sea.cex, col=sea.col)
-text(2300,  -2200, "Sea", cex=sea.cex, col=sea.col)
+text(1950,  -2050, "D'Urville", cex=sea.cex, col=sea.col)
+text(1950,  -2250, "Sea", cex=sea.cex, col=sea.col)
 
 text(0, -1800, "Ross", cex=sea.cex, col=sea.col)
 text(0, -2000, "Sea", cex=sea.cex, col=sea.col)

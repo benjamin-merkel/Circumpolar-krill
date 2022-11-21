@@ -45,12 +45,6 @@ env       <- readRDS("data/Environmental covariate stack.rds")
 path_used <- "data/IWC/v7.1"
 file.list <- list.files(path_used, pattern = ".csv", recursive = T)
 file.list <- file.list[!grepl("SHL.csv", file.list)]
-# These are coded as follows:
-#   01 Pilot      	06 Sperm 	        11 Right 	          16 Pygmy Right 
-#   02 Bottlenose 	07 Humpback 	    12 Gray 	          17 Cuvier's Beaked 
-# 	03 Killer     	08 Sei 	          13 Baird's Beaked 	18 Bowhead 
-#   04 Blue 	      09 Common Minke 	14 Baleen          	19 Beaked (unspecified)
-#   05 Fin 	        10 Bryde's 	      15 Pygmy Blue 	    20 Antarctic Minke
 
 columns_used <- c("Day" ,"Mon", "Year", "Sp", "Len" , "L.u" , "Sx", "NoF",                                                   
                   "F1.L", "F1.S", "F.u", "Lat", "Mn", "X", "Ac", "Lon",                                                   
@@ -93,15 +87,22 @@ round(tapply(data$digits.lat, data$Year, mean),1)
 background_raster_lonlat         <- raster(xmn = -180, xmx=180, ymn=-90, ymx=-40, res=1, crs = 4326)
 values(background_raster_lonlat) <- 1:ncell(background_raster_lonlat)
 
+# These are coded as follows:
+#   01 Pilot      	06 Sperm 	        11 Right 	          16 Pygmy Right 
+#   02 Bottlenose 	07 Humpback 	    12 Gray 	          17 Cuvier's Beaked 
+# 	03 Killer     	08 Sei 	          13 Baird's Beaked 	18 Bowhead 
+#   04 Blue 	      09 Common Minke 	14 Baleen          	19 Beaked (unspecified)
+#   05 Fin 	        10 Bryde's 	      15 Pygmy Blue 	    20 Antarctic Minke
+
 
 # # mean timimng of whale catch 
-data3 <- data2[data2$Sp %in% c(4,5,20) & data2$Lat >= 40 & data2$X == "S",]
+data3 <- data2[data2$Sp %in% c(4,5,7,20) & data2$Lat >= 40 & data2$X == "S",]
 data.doy <- data3[!is.na(data3$doy),] #  & data3$Mon %in% c(12,1:4)
 data.doy$doy2 <- data.doy$doy
 data.doy$doy2[data.doy$doy2>200] <- data.doy$doy2[data.doy$doy2>200] - 365
 
 
-data.doy2 <- st_as_sf(data.doy[data.doy$Sp %in% c(4,5,20)  & data.doy$Mon %in% c(1:3,12),], coords = c("longitude","latitude"), crs=lonlat.proj)
+data.doy2 <- st_as_sf(data.doy[data.doy$Sp %in% c(4,5,7,20)  & data.doy$Mon %in% c(1:3,12),], coords = c("longitude","latitude"), crs=lonlat.proj)
 ras_doy <- rasterize(data.doy2, background_raster_lonlat, field = "doy2",  fun = mean)
 pol_doy <- rasterToPolygons(ras_doy)
 pol_doy <- st_transform(st_as_sf(pol_doy), south_pole_equal_area.proj)
@@ -125,7 +126,7 @@ dev.off()
 
 
 # whale catches Dec-Mar
-data3                   <- data2[data2$Sp %in% c(4,5,20) & data2$Mon %in% c(1:3,12) & data2$Lat >= 40 & data2$X == "S",]
+data3                   <- data2[data2$Sp %in% c(4,5,7,20) & data2$Mon %in% c(1:3,12) & data2$Lat >= 40 & data2$X == "S",]
 dat_ras                 <- rasterize(data3, background_raster_lonlat, field = "count",  fun = "sum")
 dat_ras[is.na(dat_ras)] <- 0
 pol_ras                 <- rasterToPolygons(dat_ras)

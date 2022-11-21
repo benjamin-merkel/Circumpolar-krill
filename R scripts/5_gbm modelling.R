@@ -257,6 +257,8 @@ writeRaster(EnsembleResult, filename=paste0("data/",species,"_circumpolar_GBM_ME
 writeRaster(gbm_ras_mean  , filename=paste0("data/",species,"_circumpolar_GBM_MEAN_3000_ensemble_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
 writeRaster(gbm_ras_sd    , filename=paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
 
+saveRDS(biomod_gbm_Proj  , paste0("data/",species,"_circumpolar_GBM_10raster_predictions_Dec-Mar.rds"))
+
 saveRDS(data             , paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
 # saveRDS(Biomodresponse   , paste0("data/",species,"_circumpolar_GBM_100_response_curve_data_Dec-Mar.rds"))
 saveRDS(vi3              , paste0("data/",species,"_circumpolar_GBM_100_estimated variable importance_Dec-Mar.rds"))
