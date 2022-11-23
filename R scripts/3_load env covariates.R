@@ -164,7 +164,7 @@ names(dis_coastline)  <- "dis_coastline"
 ### distance to coastal polynyas ----------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pol_ice.pol <- st_read("data/env covariates/coastal polynyas/coastal polynya climatology.shp")
+pol_ice.pol <- st_read("data/env covariates/Nihashi & Ohshima 2015/coastal polynya climatology/coastal polynya climatology.shp")
 
 pol_ice.pol         <- st_transform(pol_ice.pol, south_pole_equal_area.proj)
 dis_ice.pol         <- mask(background_raster40, pol_ice.pol)
