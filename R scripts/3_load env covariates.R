@@ -159,6 +159,21 @@ dis_coastline         <- terra::distance(coast)
 names(dis_coastline)  <- "dis_coastline"
 
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### distance to coastal polynyas ----------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pol_ice.pol <- st_read("data/env covariates/coastal polynyas/coastal polynya climatology.shp")
+
+pol_ice.pol         <- st_transform(pol_ice.pol, south_pole_equal_area.proj)
+dis_ice.pol         <- mask(background_raster40, pol_ice.pol)
+dis_ice.pol[!is.na(dis_ice.pol)]  <- 1
+dis_ice.pol         <- terra::distance(dis_ice.pol)
+names(dis_ice.pol)  <- "dis_ice.pol"
+
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### mixed layer depth -------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -308,7 +323,7 @@ env      <- stack((WOA_temp_0), (WOA_temp_200),
                   (OCCCI_bd), (OCCCI_bi), (OCCCI_be), (OCCCI_bt), (OCCCI_bm), (OCCCI_bs), (OCCCI_bv), (OCCCI_ba),
                   (NSIDC_ice_retreat), (NSIDC_ice_advance), (NSIDC_ice_duration), 
                   (NSIDC_ice_edge), (NSIDC_spring_edge), (NSIDC_ice_conc), (NSIDC_ice_pers),
-                  bath, dis_1000, dis_coastline,
+                  bath, dis_1000, dis_coastline, dis_ice.pol,
                   (WOA_ox_0), (WOA_ox_200),
                   (WOA_si_0), (WOA_si_200),
                   (WOA_ni_0), (WOA_ni_200))

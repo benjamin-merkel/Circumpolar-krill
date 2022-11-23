@@ -42,6 +42,7 @@ model.domain <- circumpolar
 
 # load env covariates
 env <-readRDS("data/Environmental covariate stack.rds")
+env <- stack(env, dis_ice.pol)
 
 # reduce dimension of ox_0 temp_0 & temp_200 with PCA
 # https://pages.cms.hu-berlin.de/EOL/gcg_quantitative-methods/Lab10_PCA.html#Today%E2%80%99s_session
@@ -82,10 +83,10 @@ env.init.selected <- subset(env, c(
   "WOA_sal_0","WOA_sal_200",
   "OCCCI_bd","OCCCI_bm",
   "WOA_si_0",
-  "bath","dis_1000",
+  "bath","dis_1000","dis_ice.pol",
   "Pellichero_ml_depth", 'pca'))
 
-names(env.init.selected) <- c("ICEDUR", "ICEMELT", "ICECONC", "ICEPERS", "MIZ", "SSS", "S200", "BD", "BM", "SSI", "BATH", "DIS", "MLD", "PCA")
+names(env.init.selected) <- c("ICEDUR", "ICEMELT", "ICECONC", "ICEPERS", "MIZ", "SSS", "S200", "BD", "BM", "SSI", "BATH", "DIS","ICEPOL", "MLD", "PCA")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # test colinearity of covariates across model domain --------
