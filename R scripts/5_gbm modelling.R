@@ -57,7 +57,7 @@ env.selected <- readRDS("data/Environmental covariates selected.rds")
 # define species ------
 
 species     <- "E.crystallorophias"
-# species     <- "E.superba"
+species     <- "E.superba"
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -118,45 +118,49 @@ nruns=10
 dat.used        <- data[,"presence_absence"]
 names(dat.used) <- substr(species, 1, 3)
 
-# biomod_data <- BIOMOD_FormatingData(resp.var = data.frame(dat.used)[,1],
-#                                     resp.xy  = data.frame(dat.used)[,2:3],
-#                                     resp.name= substr(species, 1, 3),
-#                                     expl.var = stack(env.selected))
-
 
 biomod_data <- BIOMOD_FormatingData(resp.var = dat.used,
                                     resp.name= substr(species, 1, 3),
                                     expl.var = data[,names(env.selected)])
 
 setwd(gbm_output_dir)
-biomod_gbm <- BIOMOD_Modeling(data              = biomod_data,
+biomod_gbm <- BIOMOD_Modeling(bm.format         = biomod_data,
                               models            = "GBM",
-                              models.options    = myBiomodOption,
-                              NbRunEval         = nruns,
-                              DataSplit         = 70,
-                              Prevalence        = NULL,
-                              Yweights          = NULL,
-                              VarImport         = 10,
-                              models.eval.meth  = c('TSS','ROC'),
-                              SaveObj           = T,
-                              rescal.all.models = F,
+                              modeling.id       = 'GBM Dec-Mar',
+                              nb.rep            = nruns,
+                              data.split.perc   = 70,
+                              prevalence        = NULL,
+                              weights           = NULL,
+                              var.import        = 10,
+                              metric.eval       = c('TSS','ROC'),
+                              save.output       = T,
+                              scale.models      = F,
                               do.full.models    = F,
-                              modeling.id       = 'GBM Dec-Mar') 
+                              bm.options        = myBiomodOption,
+                              data.split.table  = NULL,
+                              nb.cpu            = 4,
+                              seed.val          = NULL,
+                              do.progress       = TRUE) 
 
-biomod_ensemble <- BIOMOD_EnsembleModeling(modeling.output = biomod_gbm,
-                                           chosen.models = 'all',
-                                           em.by = 'all',
-                                           eval.metric = c('TSS'),
-                                           eval.metric.quality.threshold = NULL,
-                                           models.eval.meth = c('TSS','ROC'),
-                                           prob.median = TRUE )
 
 gbm_Eval <- get_evaluations(biomod_gbm)
+
+biomod_ensemble <- BIOMOD_EnsembleModeling(bm.mod = biomod_gbm,
+                                           models.chosen = 'all',
+                                           em.by = "all",
+                                           metric.eval = 'ROC',
+                                           prob.median = TRUE,
+                                           prob.cv = T,
+                                           prob.ci = F,
+                                           nb.cpu = 4,
+                                           prob.mean.weight	= T)
+
+ensemble_Eval <- get_evaluations(biomod_ensemble)
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # load models
-# 
+
 biomod_gbm <- NULL
 setwd(gbm_output_dir)
 temp.path <- list.files(pattern="Dec-Mar.models.out", recursive = TRUE)
@@ -164,34 +168,18 @@ temp.path <- temp.path[grepl(paste0(substr(species,1,3),"."), temp.path)]
 if(exists("myBiomodOuttmp")) { rm(myBiomodOuttmp) }
 biomod_gbm <- get(load(temp.path))
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# model evaluation metric ---------
+
 gbm_Eval<- get_evaluations(biomod_gbm)
 summary(gbm_Eval[2,1,,,])
-
-
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# check marginal response plots for each covariate across models ------
-
-setwd(gbm_output_dir)
-Biomodresponse <- response.plot2(
-  models = BIOMOD_LoadModels(biomod_gbm),
-  Data = get_formal_data(biomod_gbm, 'expl.var'),
-  show.variables = get_formal_data(biomod_gbm,'expl.var.names'),
-  do.bivariate = FALSE,
-  fixed.var.metric = 'mean',
-  plot=F,
-  legend = F,
-  data_species = get_formal_data(biomod_gbm, 'resp.var')
-)
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # check variable importance across all models -----
 
 var_imp <- get_variables_importance(biomod_gbm)
-vi3 <- t(var_imp[,,1:nruns,"AllData"])
-vi4 <- apply(vi3,2,mean)
+vi3 <- apply(var_imp,1,c)
+vi4 <- apply(vi3, 2, mean)
 
 setwd(base_dir)
 png(paste0("figures/",species ," GBM circumpolar variable importance_Dec-Mar.png"), res = 800, width=17, height = 17, units="cm")
@@ -204,10 +192,10 @@ par(opar)
 dev.off()
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# predict model output over model domain -----
+# predict model output over model domain for each model and ensemble ----
 
 setwd(gbm_output_dir)
-proj1 <- BIOMOD_Projection(modeling.output = biomod_gbm,
+proj1 <- BIOMOD_Projection(bm.mod = biomod_gbm,
                            new.env = env.selected,
                            proj.name ='current',
                            selected.models = "all",
@@ -215,119 +203,37 @@ proj1 <- BIOMOD_Projection(modeling.output = biomod_gbm,
                            compress =F,
                            clamping.mask = F,
                            output.format ='.grd')
-biomod_gbm_Proj <- proj1@proj@val
 
-proj_ensemble <- BIOMOD_EnsembleForecasting(biomod_ensemble,
-                                            projection.output = proj1,
+biomod_gbm_Proj <- proj1@proj.out@val
+
+proj_ensemble <- BIOMOD_EnsembleForecasting(bm.em  = biomod_ensemble,
+                                            bm.proj = proj1,
                                             selected.models = 'all',
-                                            compress = 'gzip'
-)
+                                            compress = T)
 mod_proj_ensemble <- get_predictions(proj_ensemble)
-EnsembleResult <- mod_proj_ensemble[[2]] #This is the median model ensemble
-plot(EnsembleResult, zlim=c(0,1000))
+ensemble_median   <- mod_proj_ensemble[[7]] # median model ensemble
+ensemble_mean     <- mod_proj_ensemble[[8]] # mean model ensemble
+ensemble_cv       <- mod_proj_ensemble[[6]] # mean model ensemble
 
-gbm_Ens <- get_evaluations(biomod_ensemble)
+plot(ensemble_mean, zlim=c(0,1000))
+plot(ensemble_mean_cv)
 
-
-# mean model prediction based on 10 models using all available data
-gbm_ras_mean <- mean(raster::subset(biomod_gbm_Proj, grep('RUN', names(biomod_gbm_Proj), value = T)))
-# standard deviation of model prediction based on 100 models using 70% of available data
+# # standard deviation of model prediction based on 100 models using 70% of available data
 gbm_ras_sd   <- calc(raster::subset(biomod_gbm_Proj, grep('RUN', names(biomod_gbm_Proj), value = T)), sd)
-
-# plot model predictions
-opar <- par(mfrow=c(2,1))
-layer1 <- EnsembleResult
-# layer1[env[["NSIDC_ice_duration"]]<10]<-NA
-plot(mask(layer1,model.domain), main="Ensemble median")
-plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
-plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
-
-layer1 <- gbm_ras_mean
-# layer1[env[["NSIDC_ice_duration"]]<10]<-NA
-plot(mask(layer1,model.domain), main="unweighted mean")
-plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
-plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
-par(opar)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # SAVE ----
 
 setwd(base_dir)
-writeRaster(EnsembleResult, filename=paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
-writeRaster(gbm_ras_mean  , filename=paste0("data/",species,"_circumpolar_GBM_MEAN_3000_ensemble_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
-writeRaster(gbm_ras_sd    , filename=paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(ensemble_mean,   filename=paste0("data/",species,"_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(ensemble_median, filename=paste0("data/",species,"_circumpolar_GBM_MEDIAN_ensemble_ROC_weighted_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(ensemble_cv,     filename=paste0("data/",species,"_circumpolar_GBM_CV_ensemble_ROC_weighted_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(gbm_ras_sd,      filename=paste0("data/",species,"_circumpolar_GBM_SD_ensemble_unweighted_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(biomod_gbm_Proj, filename=paste0("data/",species,"_circumpolar_GBM_10model_prediction_Dec-Mar.tif"), format="GTiff", overwrite=TRUE)
 
-saveRDS(biomod_gbm_Proj  , paste0("data/",species,"_circumpolar_GBM_10raster_predictions_Dec-Mar.rds"))
+saveRDS(biomod_gbm_Proj,     paste0("data/",species,"_circumpolar_GBM_raster_predictions_Dec-Mar.rds"))
 
-saveRDS(data             , paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
-# saveRDS(Biomodresponse   , paste0("data/",species,"_circumpolar_GBM_100_response_curve_data_Dec-Mar.rds"))
-saveRDS(vi3              , paste0("data/",species,"_circumpolar_GBM_100_estimated variable importance_Dec-Mar.rds"))
-saveRDS(gbm_Eval         , paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# plotting ----
-
-layer1 <- EnsembleResult 
-if(species == "E.crystallorophias") layer1[ice_duration < 10] <- NA
-legend.axis.labels = c("0","1")
-legend.labels = "probability"
-setwd(base_dir)
-png(paste0("figures/",species ," GBM circumpolar model prediction mean map_Dec-Mar.png"), 
-    res = 800,   width=20, height = 20, units="cm")
-par(mar=rep(0,4))
-plot(st_geometry(model.domain),lty=2)  
-plot(mask(layer1, model.domain),  zlim=c(0,1000), add=T, legend =F)
-plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
-plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
-plot(st_geometry(circumpolar),add=T)
-plot(layer1,legend.only = T, zlim=c(0,1000),  
-     axis.args=list(at=c(0, 1000), #brks,
-                    labels=legend.axis.labels,#brks/10 ,
-                    cex.axis=1,tick=F,line=-0.2),
-     legend.args=list(text=legend.labels, side=4, font=2, line=2.5, cex=1),
-     legend.width=0.2, legend.shrink=0.75,
-     smallplot=c(0.85,0.87, 0.03,0.17))
-dev.off()
-
-
-
-# plot marginal response curves for each covariate
-ncols <- ceiling((nlayers(env.selected)+1)/4)
-setwd(base_dir)
-png(paste0("figures/",species ," GBM circumpolar marginal response curves_Dec-Mar.png"),
-    units="cm",res=500,width=4*ncols, height=15)
-par(mfrow = c(4,ncols),mar=c(2,2,2,0.1))
-for(i in unique(Biomodresponse$expl.name)){
-  xx <- Biomodresponse[Biomodresponse$expl.name==i,]
-  xx <- xx[complete.cases(xx),]
-  xx <- xx[!grepl("Full", xx$pred.name),]
-  # xx$expl.val <- round(xx$expl.val,0)
-  response <- data.frame(mean   = tapply(xx$pred.val, xx$expl.val, mean),
-                         median = tapply(xx$pred.val, xx$expl.val, median),
-                         sd     = tapply(xx$pred.val, xx$expl.val, sd),
-                         se     = tapply(xx$pred.val, xx$expl.val, sd)/sqrt(length(unique(xx$pred.name))),
-                         q0.025 = tapply(xx$pred.val, xx$expl.val, FUN = function(x) quantile(x,0.025)),
-                         q0.25  = tapply(xx$pred.val, xx$expl.val, FUN = function(x) quantile(x,0.25)),
-                         q0.75  = tapply(xx$pred.val, xx$expl.val, FUN = function(x) quantile(x,0.75)),
-                         q0.975 = tapply(xx$pred.val, xx$expl.val, FUN = function(x) quantile(x,0.975)))
-  response$x <- as.numeric(as.character(rownames(response)))
-  response$lower.ci <- response$mean - 2 * response$se
-  response$upper.ci <- response$mean + 2 * response$se
-  
-  plot(response$x, response$mean,type="l",lwd=2,ylim=c(0.4,1),main=i,las=1,ylab="",xlab="",cex.axis=0.8,col="white")
-  for(j in unique(Biomodresponse$pred.name)){
-    xx2 <- xx[xx$pred.name==j,]
-    lines(xx2$expl.val, xx2$pred.val, lwd=1, col=rgb(1,0,0,0.2))
-  }
-  # lines(response$x, frollmean(response$mean, 5), lwd=3, col=1)
-  lines(response$x, response$mean, lwd=3, col=1)
-  
-  rug(biomod_data@data.env.var[,i])
-}
-plot(1,1,col="white",ann=F,axes=F)
-legend("bottomright", legend = c("ensemble mean","single model"),
-       lwd=c(4,1),lty=1,col=c(1,2),cex=0.9)
-
-par(opar)
-dev.off()
-
+saveRDS(data,                paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
+saveRDS(vi3,                 paste0("data/",species,"_circumpolar_GBM_estimated variable importance_Dec-Mar.rds"))
+saveRDS(gbm_Eval,            paste0("data/",species,"_circumpolar_GBM_all model evaluation_Dec-Mar.rds"))
+saveRDS(ensemble_Eval,       paste0("data/",species,"_circumpolar_GBM_ensemble model evaluation_Dec-Mar.rds"))

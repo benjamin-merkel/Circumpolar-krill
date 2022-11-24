@@ -42,7 +42,7 @@ names(env)   <- c("SST","T200","SSS","S200","MLD","MLT","MLS",
                   "BD","BI","BE","BT","BM","BS","BV","BA",
                   "ICEMELT","ICEADVANCE","ICEDUR","ICEEDGE","MIZ",
                   "ICECONC","ICEPERS","BATH","DIS","DISCOAST","SOX",
-                  "OX200","SSI","SI200","SSN","N200")
+                  "OX200","SSI","SI200","SSN","N200","ICEPOL")
 env2 <- env[[names(env.selected)]]
 
 
@@ -51,12 +51,14 @@ par(mfrow=c(3,4), mar=c(0,0,0,0))
 for(i in 1:12){
   plot(st_geometry(circumpolar))
   if(i<12) {x <- env2[[i]]} else {x <- env.selected[[i]]}
-  plot(mask(x, as_Spatial(circumpolar)), col=brewer.pal(11,"Spectral"),add=T, legend=F)
+  xx <- mask(x, as_Spatial(circumpolar))
+  xx <- mask(xx, as_Spatial(ice_shelf),inverse = T)
+  plot(xx, col=brewer.pal(11,"Spectral"),add=T, legend=F)
   plot(st_geometry(ice_shelf),add=T,border=grey(0.3),col=grey(1),lwd=0.9)
   plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
   plot(st_geometry(circumpolar),add=T)
   title(names(env.selected[[i]]), line=-8.2, cex=0.8)
-  plot(mask(x, as_Spatial(circumpolar)), legend.only=T,
+  plot(xx, legend.only=T,
        col=brewer.pal(11,"Spectral"),add=T,
        axis.args=list(cex.axis=0.5),
        legend.args=list(text='', side=4, font=2, line=1.5, cex=0.7),

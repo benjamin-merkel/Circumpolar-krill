@@ -1,7 +1,7 @@
 
 
-es_vi <- readRDS("data/E.superba_circumpolar_GBM_100_estimated variable importance_Dec-Mar.rds")
-ec_vi <- readRDS("data/E.crystallorophias_circumpolar_GBM_100_estimated variable importance_Dec-Mar.rds")
+es_vi <- readRDS("data/E.superba_circumpolar_GBM_estimated variable importance_Dec-Mar.rds")
+ec_vi <- readRDS("data/E.crystallorophias_circumpolar_GBM_estimated variable importance_Dec-Mar.rds")
 es_vi2<- apply(es_vi,2,mean)
 ec_vi2<- apply(ec_vi,2,mean)
 

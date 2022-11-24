@@ -7,6 +7,7 @@ library(concaveman)
 library(cartography)
 library(dplyr)
 library(scales)
+library(ncdf4)
 
 sf_use_s2(F)
 
@@ -43,6 +44,18 @@ ccamlr_domains_crop <- st_intersection(ccamlr_domains, circumpolar)
 rownames(ccamlr_domains) <- ccamlr_domains$OBJECTID <- ccamlr_domains$Index
 
 
+
+fr       <- nc_open("data/map data/Park 2019 fronts.nc")
+lonPF    <- ncvar_get(fr, "LonPF")
+latPF    <- ncvar_get(fr, "LatPF")
+lonSACCF <- ncvar_get(fr, "LonSACCF")
+latSACCF <- ncvar_get(fr, "LatSACCF")
+lonSAF   <- ncvar_get(fr, "LonSAF")
+latSAF   <- ncvar_get(fr, "LatSAF")
+lonSB    <- ncvar_get(fr, "LonSB")
+latSB    <- ncvar_get(fr, "LatSB")
+nc_close(fr)
+
 PF_fronts    <- data.frame(lon = lonPF, lat = latPF, name = "Polar Front (PF)")
 SACCF_fronts <- data.frame(lon = lonSACCF, lat = latSACCF, name = "Southern Antarctic Circumpolar Current Front (SACCf)")
 SAF_fronts   <- data.frame(lon = lonSAF, lat = latSAF, name = "Subantarctic Front (SAF)")
@@ -78,31 +91,34 @@ shelf[shelf < 1]     <- 0
 
 ## load
 species                 <- "E.crystallorophias"
-ec_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
-ec_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
-ec_rast <- readRDS(paste0("data/",species,"_circumpolar_GBM_10raster_predictions_Dec-Mar.rds"))
+ec_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"))
+ec_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_ensemble_unweighted_Dec-Mar.tif"))
+ec_cv   <- raster(paste0("data/",species,"_circumpolar_GBM_CV_ensemble_ROC_weighted_Dec-Mar.tif"))
+ec_rast <- raster(paste0("data/",species,"_circumpolar_GBM_10model_prediction_Dec-Mar.tif"))
 ec_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
-ec_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
+ec_en_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_ensemble model evaluation_Dec-Mar.rds"))
+ec_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_all model evaluation_Dec-Mar.rds"))
 
-
-# icer <- crop(icer, ec_mean)
-# ec_mean[is.na(icer)]<-NA
+icer <- crop(icer, ec_mean)
+ec_mean[is.na(icer)]<-NA
 # ec_sd[is.na(icer)]<-NA
 
 species                 <- "E.superba" 
-es_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
-es_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
-es_rast <- readRDS(paste0("data/",species,"_circumpolar_GBM_10raster_predictions_Dec-Mar.rds"))
+es_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"))
+es_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_ensemble_unweighted_Dec-Mar.tif"))
+es_cv   <- raster(paste0("data/",species,"_circumpolar_GBM_CV_ensemble_ROC_weighted_Dec-Mar.tif"))
+es_rast <- raster(paste0("data/",species,"_circumpolar_GBM_10model_prediction_Dec-Mar.tif"))
 es_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
-es_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
+es_en_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_ensemble model evaluation_Dec-Mar.rds"))
+es_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_all model evaluation_Dec-Mar.rds"))
 
 
 
 
 
 ## binary habitat
-es_tss_cutoff <- mean(es_eval[2,2,1,,1]) 
-ec_tss_cutoff <- mean(ec_eval[2,2,1,,1]) 
+es_tss_cutoff <- es_en_eval[,2,8] 
+ec_tss_cutoff <- ec_en_eval[,2,8]
 
 es_bin <- es_mean
 es_bin[es_bin< es_tss_cutoff] <- 0
@@ -120,16 +136,16 @@ e_data[!is.na(e_data)] <- 1
 
 es_pol <- rasterToPolygons(es_bin, fun = function(x) {x==1}, n = 16, dissolve = T)
 ec_pol <- rasterToPolygons(ec_bin, fun = function(x) {x==2}, n = 16, dissolve = T)
-# names(es_pol) <- names(ec_pol) <- "habitat"
-# st_write(st_as_sf(es_pol), "data/Antarctic krill habitat.shp")
-# st_write(st_as_sf(ec_pol), "data/Ice krill habitat.shp")
+names(es_pol) <- names(ec_pol) <- "habitat"
+st_write(st_as_sf(es_pol), "data/Antarctic krill habitat v2.shp")
+st_write(st_as_sf(ec_pol), "data/Ice krill habitat v2.shp")
 
 es_rast_bin <- ec_rast_bin <- vector(mode="list")
 for(i in 1:10){
   es_rast_bin[[i]] <- es_rast[[1]]
   es_rast_bin[[i]][es_rast_bin[[i]] < es_eval[2,2,1,,1][i]] <- 0
   es_rast_bin[[i]][es_rast_bin[[i]] > 0] <- 1
-  
+
   ec_rast_bin[[i]] <- ec_rast[[1]]
   ec_rast_bin[[i]][ec_rast_bin[[i]] < ec_eval[2,2,1,,1][i]] <- 0
   ec_rast_bin[[i]][ec_rast_bin[[i]] > 0] <- 1
@@ -140,19 +156,18 @@ ec_rast_bin[is.na(icer)]<-NA
 
 
 
-patterns <- c("diamond","grid","hexagon","horizontal", "vertical",
-              "zigzag","left2right","right2left","circle")
+patterns <- c("left2right","right2left")
 
 es_pol_hatch <- st_as_sf(es_pol) %>%
-  hatchedLayer(mode = "sfc", pattern = patterns[7], density = 15)
+  hatchedLayer(mode = "sfc", pattern = patterns[1], density = 15)
 es_pol_hatch <- st_sf(geometry = es_pol_hatch)
 
 ec_pol_hatch <- st_as_sf(ec_pol) %>%
-  hatchedLayer(mode = "sfc", pattern = patterns[8], density = 15)
+  hatchedLayer(mode = "sfc", pattern = patterns[2], density = 15)
 ec_pol_hatch <- st_sf(geometry = ec_pol_hatch)
 
 
-png("figures/krill comparison map hatched 2.png",units="cm",res=800,width=20, height=20)
+png("figures/krill comparison map hatched.png",units="cm",res=800,width=20, height=20)
 cols_used <- c(grey(0.9),brewer.pal(5,"Set3")[c(2,5,4)])
 cols_used <- c(grey(0.9),brewer.pal(5,"Set3")[c(4,5,2)])
 opar <- par(mfrow=c(1,1), mar=c(0,0,0,0))
@@ -165,27 +180,10 @@ plot(ec_pol, border = cols_used[3], add=T, lwd =0.5)
 plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
 plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 plot(circumpolar, add=T)
-# plot(grat.40s,add=T,lwd=1.5)
 legend("bottomright",legend=c("No data","Antarctic krill","Ice krill"),pch=22,
        pt.bg = c("white",cols_used[2:3]), col = 1, box.col = "transparent", cex = 1.3)
 par(opar)
 dev.off()
-
-
-
-# png("figures/circumpolar/krill comparison map with CCAMLR fish.png",units="cm",res=800,width=20, height=20)
-# cols_used <- c(grey(0.9),brewer.pal(5,"Set3")[c(2,5,4)])
-# opar <- par(mfrow=c(1,1), mar=c(0,0,0,0))
-# plot(grat.50S,lwd=1.5)
-# plot(e_overlap,  col = cols_used, axes=F,legend=F,add=T)
-# plot(ccamlr_fish$geometry ,add=T,lty=2)
-# # plot(ccamlr_mpa$geometry ,add=T, border="darkred",lty=3)
-# plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
-# plot(st_geometry(land50),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
-# # plot(st_centroid(ccamlr_fish)$geometry ,add=T, border="darkred",lty=3,pch=as.character(ccamlr_fish$ShortLabel),cex=2)
-# plot(grat.50S,lwd=1.5, add=T)
-# par(opar)
-# dev.off()
 
 
 
@@ -246,6 +244,7 @@ stats <- data.frame(species    = c("Esup","Ecry","total","overlap"),
                     per.over   = over_area/c(esup_area,ecry_area,tot_area,over_area))
 stats[,2:4] <- round(stats[,2:4], 3)
 stats
+write.table(stats, file = "data/Habitat as percent of total area south of 50S.txt")
 
 
 # precent of total krill habitat area
@@ -260,6 +259,7 @@ stats <- data.frame(species    = c("Esup","Ecry","total","overlap"),
                     per.over   = over_area/c(esup_area,ecry_area,tot_area,over_area))
 stats[,2:4] <- round(stats[,2:4], 3)
 stats
+write.table(stats, file = "data/Habitat as precent of total krill habitat area.txt")
 
 
 
@@ -285,7 +285,7 @@ stats$rel_shelf <- stats$shelf/stats$total
 stats$rel_deep  <- stats$deep /stats$total
 
 stats
-
+write.table(stats, file = "data/proportion on off shelf.txt")
 
 png("figures/krill proportion of habitat on and off shelf.png",units="cm", res=800, width=8, height=18)
 
@@ -348,56 +348,6 @@ par(opar)
 dev.off()
 
 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-######## split by fishing boxes -----
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 
-# dom.out <- data.frame(sub.area = ccamlr_fish$ShortLabel, 
-#                       e.sup.area = 0,
-#                       e.cry.area = 0,
-#                       over.area  = 0,
-#                       total.area = 0)
-# for(i in 1:nrow(dom.out)){
-#   cat("\r",i," of ",19,"  ")
-#   domain.result <- mask(e_overlap,ccamlr_fish[ccamlr_fish$ShortLabel==ccamlr_fish$ShortLabel[i],])
-#   dom.out$total.area[i] <- sum(as.numeric(table(factor(values(domain.result),levels=c(0:3)))[2:4]))*100/1000000
-#   dom.out$over.area[i] <- sum(as.numeric(table(factor(values(domain.result),levels=c(0:3)))[4]))*100/1000000
-#   dom.out$e.sup.area[i] <- sum(as.numeric(table(factor(values(domain.result),levels=c(0:3)))[2]))*100/1000000
-#   dom.out$e.cry.area[i] <- sum(as.numeric(table(factor(values(domain.result),levels=c(0:3)))[3]))*100/1000000
-# }
-# dom.out[is.na(dom.out)]<-0
-# dom.out$area <- substr(dom.out$sub.area,1,2)
-# dom.out <- dom.out[order(dom.out$sub.area),]
-# 
-# #Ant krill stats
-# test <- dom.out[dom.out$area==48,2]+dom.out[dom.out$area==48,4]
-# round(test/sum(test),2)
-# test <- dom.out[dom.out$area==58,2]+dom.out[dom.out$area==58,4]
-# round(test/sum(test),2)
-# test <- dom.out[dom.out$area==88,2]+dom.out[dom.out$area==88,4]
-# round(test/sum(test),2)
-# 
-# 
-# #Ice krill stats
-# test <- dom.out[dom.out$area==48,3]+dom.out[dom.out$area==48,4]
-# round(test/sum(test),2)
-# test <- dom.out[dom.out$area==58,3]+dom.out[dom.out$area==58,4]
-# round(test/sum(test),2)
-# test <- dom.out[dom.out$area==88,3]+dom.out[dom.out$area==88,4]
-# round(test/sum(test),2)
-# 
-# 
-# dom.out3 <- t(as.matrix(dom.out)[,c(2,4,3)])
-# colnames(dom.out3)<- dom.out$sub.area
-# 
-# png("figures/circumpolar/krill habitat area by fishing area.png",units="cm",res=800,width=20, height=15)
-# par(mfrow=c(1,1),mar=c(4,5,1,1))
-# cols_used <- c(brewer.pal(5,"Set3")[c(2,4,5)])
-# barplot(dom.out3,col=cols_used, border="white",
-#         ylab="10^6 km^2",main="",las=2)
-# # legend("topright",pch=20,pt.cex=3,col=cols_used, legend=c("E.cry","overlap","E.sup"))
-# dev.off()
 
 
 
@@ -505,7 +455,7 @@ png("figures/krill proportion of habitat longitudinal around the continent smoot
 opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
 col_used <- c(brewer.pal(5,"Set3")[c(4,5,2)])
 plot(movingFun(poly.out2$e.sup.rel,6,circular = T),type="l",
-     xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.06),col=col_used[1],lwd=3)
+     xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.045),col=col_used[1],lwd=3)
 # polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.sup.min.rel,6,circular = T), rev(movingFun(poly.out2$e.sup.max.rel,6,circular = T))),
 #         col = alpha(col_used[1], 0.2), border= "transparent")
 polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.sup.rel.lci,6,circular = T), rev(movingFun(poly.out2$e.sup.rel.uci,6,circular = T))),
@@ -567,6 +517,7 @@ poly.out[,3] <- poly.out[,3]+poly.out[,4]
 poly.out[,2] <- poly.out[,2]/sum(poly.out[,2])
 poly.out[,3] <- poly.out[,3]/sum(poly.out[,3])
 poly.out[,4] <- poly.out[,4]/sum(poly.out[,4])
+write.table(poly.out, file = "data/proportion of habitat by ocean sectors.txt")
 
 
 png("figures/krill proportion of habitat by ocean sectors.png",units="cm",
@@ -591,7 +542,7 @@ dev.off()
 
 # 4 panel figure
 
-png("figures/E.superba and E.crystallorophias 4 panel figure v2.png", res = 800, width=40, height = 40, units="cm")
+png("figures/E.superba and E.crystallorophias 4 panel figure v3.png", res = 800, width=40, height = 40, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 plot(st_geometry(model.domain),lty=2)  
@@ -670,13 +621,12 @@ dev.off()
 
 # 2 panel figure
 
-png("figures/E.superba and E.crystallorophias sd.png", res = 800, width=40, height = 20, units="cm")
-opar <- par(mfrow=c(1,2), mar=c(0,0,0,0))
+png("figures/E.superba and E.crystallorophias sd and cv.png", res = 800, width=40, height = 40, units="cm")
+opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 col_sd <- brewer.pal(9, "Purples")
 plot(st_geometry(model.domain),lty=2)  
 plot(mask(es_sd, model.domain),zlim=c(0,300), add=T, legend =F, col=col_sd)
-# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 
@@ -690,15 +640,14 @@ text(2000, -2800, "ICE",cex=0.7, col=1)
 plot(st_geometry(circumpolar),add=T)
 plot(es_sd/1000, legend.only = T, zlim=c(0,0.3), col=col_sd, 
      axis.args=list(cex.axis=1,tick=F,line=-0.2),
-     legend.args=list(text="standard deviation", side=4, font=2, line=2.5, cex=1),
+     legend.args=list(text="standard deviation", side=4, font=2, line=2.7, cex=0.9),
      legend.width=0.2, legend.shrink=0.75,
-     smallplot=c(0.85,0.87, 0.03,0.17))
+     smallplot=c(0.87,0.89, 0.05,0.2))
 mtext('a)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 
 plot(st_geometry(circumpolar))
 plot(mask(ec_sd, model.domain),zlim=c(0,300), add=T, legend =F, col=col_sd)
-# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 
@@ -710,8 +659,44 @@ contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0
 text(2000, -2800, "ICE",cex=0.7, col=1)
 
 plot(st_geometry(circumpolar),add=T)
-# plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
 mtext('b)', side=3, line= -2.5, at=-4350, cex=2.5)
+
+col_sd <- brewer.pal(9, "Greens")
+plot(st_geometry(model.domain),lty=2)  
+plot(mask(es_cv, model.domain),zlim=c(0,100), add=T, legend =F, col=col_sd)
+plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
+plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=0.7, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2000, -2800, "ICE",cex=0.7, col=1)
+
+plot(st_geometry(circumpolar),add=T)
+plot(es_cv, legend.only = T, zlim=c(0,0.3), col=col_sd, 
+     axis.args=list(cex.axis=1,tick=F,line=-0.2),
+     legend.args=list(text="coefficient of variation ", side=4, font=2, line=2.7, cex=0.9),
+     legend.width=0.2, legend.shrink=0.75,
+     smallplot=c(0.87,0.89, 0.05,0.2))
+mtext('c)', side=3, line= -2.5, at=-4350, cex=2.5)
+
+
+plot(st_geometry(circumpolar))
+plot(mask(ec_cv, model.domain),zlim=c(0,100), add=T, legend =F, col=col_sd)
+plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
+plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=0.7, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=0.7, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2000, -2800, "ICE",cex=0.7, col=1)
+
+plot(st_geometry(circumpolar),add=T)
+mtext('d)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 par(opar)
 dev.off()
