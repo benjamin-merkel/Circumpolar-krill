@@ -42,7 +42,6 @@ model.domain <- circumpolar
 
 # load env covariates
 env <-readRDS("data/Environmental covariate stack.rds")
-env <- stack(env, dis_ice.pol)
 
 # reduce dimension of ox_0 temp_0 & temp_200 with PCA
 # https://pages.cms.hu-berlin.de/EOL/gcg_quantitative-methods/Lab10_PCA.html#Today%E2%80%99s_session
@@ -105,7 +104,7 @@ hc <- hclust(as.dist(1-abs(M)), method = "complete")
 png(paste0("figures/Clustering of colinearity of env covariates across model domain.png"), res = 800, width=20, height = 20, units="cm")
 opar <- par(mfrow=c(1,1),mar=c(5,4,2,0))
 plot(hc,hang=-1,las=1,main='',xlab="",ylab="pearson correlation")
-rect.hclust(hc,h=0.13)
+rect.hclust(hc,h=0.2)
 # axis(1, at = c(1:16)[hc$labels[hc$order] %in% vif3.select@results$Variables], labels = round(vif3.select@results$VIF, 2), tick = F, las = 2)
 par(opar)
 dev.off()
