@@ -39,7 +39,7 @@ if(rerun){
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # spatial cross validation  ----
 
-es_mean <- raster(paste0("data/E.superba_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
+es_mean <- raster(paste0("data/E.superba_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"))
 
 
 presence.test        <- st_as_sf(test.data)
@@ -98,5 +98,6 @@ new.line$cbi             <- eb
 new.line$auc             <- au$AUC
 
 out <- rbind(out, new.line)
+out
 write.csv(out, file = paste0("data/E.superba_CCAMLR domain validation with pre 1970 data.csv"))
 

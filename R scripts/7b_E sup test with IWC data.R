@@ -2,7 +2,8 @@ library(terra)
 library(sf)
 library(sp)
 library(raster)
-
+library(concaveman)
+library(RColorBrewer)
 
 sf_use_s2(F)
 
@@ -161,11 +162,11 @@ dev.off()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # spatial correlation in lon lat ------------
 
-dat_ras[dat_ras==0 & is.na(es_mean_lonlat)] <- NA
 dat_ras             <- crop(dat_ras, extent(-180, 180, -90, -50))
-es_mean             <- raster(paste0("data/E.superba_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
+es_mean             <- raster(paste0("data/E.superba_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"))
 es_mean_lonlat      <- projectRaster(es_mean, dat_ras)
-spat_cor_lonlat     <- raster::corLocal(es_mean_lonlat, dat_ras, ngb = c(11,21), type = "spearman")
+dat_ras[dat_ras==0 & is.na(es_mean_lonlat)] <- NA
+spat_cor_lonlat     <- raster::corLocal(x = es_mean_lonlat, y = dat_ras, ngb = 13, method = "spearman")
 spat_cor2           <- spat_cor_lonlat
 spat_cor2[spat_cor2>1 | spat_cor2 < -1] <- NA
 spat_cor3           <- rasterToPolygons((spat_cor2))
@@ -273,7 +274,7 @@ write.csv(iwc_cor, file = paste0("data/E.superba vs IWC by CCAMLR domain.csv"))
 
 # 4 panel figure
 
-png("figures/E.superba with IWC 4 panel figure.png", res = 800, width=40, height = 40, units="cm")
+png("figures/E.superba with IWC 4 panel figure 2.png", res = 800, width=40, height = 40, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 plot(st_geometry(model.domain),lty=2)  

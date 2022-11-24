@@ -55,41 +55,18 @@ shelf <- env[['bath']]
 shelf[shelf < -1000] <- 1
 shelf[shelf < 1]     <- 0
 
-## load
-species                 <- "E.crystallorophias"
-ec_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
-ec_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
-ec_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
-ec_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
-
-
-icer <- crop(icer, ec_mean)
-ec_mean[is.na(icer)]<-NA
-ec_sd[is.na(icer)]<-NA
-
-species                 <- "E.superba" 
-es_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
-es_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
-es_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
-es_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # spatial cross validation  ----
 
 species                 <- "E.crystallorophias"
 species                 <- "E.superba"
 
-e_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEDIAN_3000_ensemble_TSS_weighted_Dec-Mar.tif"))
-e_sd   <- raster(paste0("data/",species,"_circumpolar_GBM_SD_3000_ensemble_Dec-Mar.tif"))
-e_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rds"))
-e_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_100_ensemble model evaluation_Dec-Mar.rds"))
+e_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"))
 
 
 if(species == "E.crystallorophias"){
   icer <- crop(icer, e_mean)
   e_mean[is.na(icer)]<-NA
-  e_sd[is.na(icer)]<-NA
 }
 
 
@@ -140,6 +117,7 @@ new.line$auc             <- au$AUC
 
 out <- rbind(out, new.line)
 out
+
 write.csv(out, file = paste0("data/",species,"_CCAMLR domain cross validation.csv"))
 
 
