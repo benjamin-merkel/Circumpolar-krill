@@ -4,6 +4,7 @@ library(concaveman)
 library(sf)
 
 sf_use_s2(F)
+south_pole_equal_area.proj  <- CRS("+proj=laea +lat_0=-90 +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=km") 
 
 grat.50S           <- st_read("data/map data/ne_50m_graticules_5.shp")
 grat.50S           <- st_transform(grat.50S[grat.50S$direction=="S" & grat.50S$degrees==50,][,1], south_pole_equal_area.proj)
@@ -106,10 +107,10 @@ for(i in 1:length(chosen.pred)){
   if(chosen.pred[i] == "ICEMELT") mtext("Timing of sea ice retreat [days since 15 Feb]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "ICECONC") mtext("Sea ice concentration [%]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "MIZ")     mtext("Frequency of marginal ice zone [days]", side = 1, line = 2.2, cex=0.8)
-  if(chosen.pred[i] == "SSS")     mtext("Surface salinity [psu]", side = 1, line = 2.2, cex=0.8)
-  if(chosen.pred[i] == "S200")    mtext("Salinity at 200m [psu]", side = 1, line = 2.2, cex=0.8)
+  if(chosen.pred[i] == "SSS")     mtext("Surface salinity [ppt]", side = 1, line = 2.2, cex=0.8)
+  if(chosen.pred[i] == "S200")    mtext("Salinity at 200m [ppt]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "BD")      mtext("Bloom duration [days]", side = 1, line = 2.2, cex=0.8)
-  if(chosen.pred[i] == "BM")      mtext("Mean Chl a during the bloom [mg/m3]", side = 1, line = 2.2, cex=0.8)
+  if(chosen.pred[i] == "BM")      mtext(expression(Mean~Chl~a~during~the~bloom~'['~mg/m^3~']'), side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "BATH")    mtext("Bathymetry [m]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "DIS")     mtext("Distance to the shelf edge [km]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "ICEPOL")  mtext("Distance to coastal polynyas [km]", side = 1, line = 2.2, cex=0.8)
@@ -130,7 +131,7 @@ chosen.pred <- c("MLD", "PCA", "DIS", "SSS", "BM", "MIZ")
 setwd(base_dir)
 png(paste0("figures/both krill GBM circumpolar 6 most important marginal response curves_Dec-Mar.png"),
     units="cm",res=500,width=17, height=21)
-par(mfrow = c(3, 2),mar=c(4, 0.2, 0.1, 0.2), oma = c(0, 4, 0, 0))
+par(mfrow = c(3, 2),mar=c(4, 0.2, 1.1, 0.2), oma = c(0, 4, 0, 0))
 for(i in 1:length(chosen.pred)){
   xx_Es <- Biomodresponse_Es$tab[Biomodresponse_Es$tab$expl.name==chosen.pred[i],c("expl.val","pred.val")]
   xx_Es <- xx_Es[complete.cases(xx_Es),]
@@ -149,10 +150,13 @@ for(i in 1:length(chosen.pred)){
        xlim=c(range(c(x.Es,x.Ec))),ylim=c(0,1),yaxt = "n", xaxt="n",
        main='',ylab="",xlab="",col="white")
   
+  mtext(paste0(c("a","b","c","d","e","f")[i],") ", chosen.pred[i]), side = 3, at = min(c(x.Es,x.Ec)), adj=0, cex = 0.8)
+  
   if(i %in% c(1,3,5)) axis(2, las = 1, cex.axis=0.8)
   if(!chosen.pred[i] %in% c("PCA","DIS","BM")) axis(1, las = 1, cex.axis=0.8)
   if(chosen.pred[i] == "DIS") axis(1, las=1, cex.axis=0.8, at = seq(-400,1200,400))
   if(chosen.pred[i] == "BM")  axis(1, las=1, cex.axis=0.8, at = log(c(0.2,0.5,1,2,5)),lab=c(0.2,0.5,1,2,5))
+  if(chosen.pred[i] == "BM")  axis(1, las=1, cex.axis=0.8, at = log(c(seq(0.1,1,0.1),seq(2,10,1))),lab=NA)
   if(chosen.pred[i]  == "PCA") {
     mtext("Dissolved oxygen", side = 1, line = 1, cex=0.8)
     mtext("Temperature", side = 1, line = 2, cex=0.8)
@@ -181,10 +185,10 @@ for(i in 1:length(chosen.pred)){
   if(chosen.pred[i] == "ICEMELT") mtext("Timing of sea ice retreat [days since 15 Feb]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "ICECONC") mtext("Sea ice concentration [%]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "MIZ")     mtext("Frequency of marginal ice zone [days]", side = 1, line = 2.2, cex=0.8)
-  if(chosen.pred[i] == "SSS")     mtext("Surface salinity [psu]", side = 1, line = 2.2, cex=0.8)
-  if(chosen.pred[i] == "S200")    mtext("Salinity at 200m [psu]", side = 1, line = 2.2, cex=0.8)
+  if(chosen.pred[i] == "SSS")     mtext("Surface salinity [ppt]", side = 1, line = 2.2, cex=0.8)
+  if(chosen.pred[i] == "S200")    mtext("Salinity at 200m [ppt]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "BD")      mtext("Bloom duration [days]", side = 1, line = 2.2, cex=0.8)
-  if(chosen.pred[i] == "BM")      mtext("Mean Chl a during the bloom [mg/m3]", side = 1, line = 2.2, cex=0.8)
+  if(chosen.pred[i] == "BM")      mtext(expression(Mean~Chl~a~during~the~bloom~'['~mg/m^3~']'), side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "BATH")    mtext("Bathymetry [m]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "DIS")     mtext("Distance to the shelf edge [km]", side = 1, line = 2.2, cex=0.8)
   if(chosen.pred[i] == "ICEPOL")  mtext("Distance to coastal polynyas [km]", side = 1, line = 2.2, cex=0.8)

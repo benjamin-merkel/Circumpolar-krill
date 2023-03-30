@@ -8,6 +8,8 @@ library(cartography)
 library(dplyr)
 library(scales)
 library(ncdf4)
+library(terra)
+library(viridis)
 
 sf_use_s2(F)
 
@@ -99,9 +101,11 @@ ec_dat  <- readRDS(paste0("data/",species,"_circumpolar_response_data_Dec-Mar.rd
 ec_en_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_ensemble model evaluation_Dec-Mar.rds"))
 ec_eval <- readRDS(paste0("data/",species,"_circumpolar_GBM_all model evaluation_Dec-Mar.rds"))
 
+ec_mean_all <- ec_mean
 icer <- crop(icer, ec_mean)
 ec_mean[is.na(icer)]<-NA
 # ec_sd[is.na(icer)]<-NA
+
 
 species                 <- "E.superba" 
 es_mean <- raster(paste0("data/",species,"_circumpolar_GBM_MEAN_ensemble_ROC_weighted_Dec-Mar.tif"))
@@ -327,13 +331,14 @@ round(dom.out$e.sup.area/sum(dom.out$e.sup.area),2)
 dom.out3 <- t(as.matrix(dom.out)[,c(2,4,3)])
 colnames(dom.out3)<-1:9
 
-png("figures/krill habitat area by planning area v2.png",units="cm",res=800,width=17, height=10)
-par(mfrow=c(1,2),mar=c(2,5,0.5,0.5))
+png("figures/krill habitat area by planning area v3.png",units="cm",res=800,width=17, height=10)
+opar <- par(mfrow=c(1,2),mar=c(4.5,4.5,0.5,0.5))
 cols_used <- c(brewer.pal(5,"Set3")[c(2,4,5)])
 cols_used <- c(brewer.pal(5,"Set3")[c(4,2,5)])
 barplot(dom.out3,col=cols_used, border=grey(0.2), 
         ylab=expression(paste(10^6," ", km^2,sep="")),
-        main="",las=1)
+        xlab="CCAMLR MPA Planning Domain",
+        main="",las=1, ylim = c(0,2))
 par(mar=c(0.5,0.5,4,0.5))
 plot(st_geometry(circumpolar))
 plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3, lwd=1.5)
@@ -343,7 +348,6 @@ plot(circumpolar, add=T)
 plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
 legend("topleft" ,pch=22,pt.cex=3,col=grey(0.2),pt.bg=rev(cols_used), inset=c(0,-0.23), xpd=TRUE, 
        legend=c("Ice krill","Overlap","Antarctic krill"), box.col ="transparent")
-
 par(opar)
 dev.off()
 
@@ -441,18 +445,18 @@ poly.out2$e.cry.max.rel  <- poly.out2$e.cry.area.max/sum(poly.out2$e.cry.area)
 
 
 lons5.lab <- lons5
-lons5.lab$x1[lons5.lab$x1 > 0] <- paste0(lons5.lab$x1[lons5.lab$x1 > 0], "E") 
-lons5.lab$x1[lons5.lab$x1 < 0] <- paste0(lons5.lab$x1[lons5.lab$x1 < 0], "W") 
+lons5.lab$x1[lons5.lab$x1 > 0] <- paste0(lons5.lab$x1[lons5.lab$x1 > 0], "°E") 
+lons5.lab$x1[lons5.lab$x1 < 0] <- paste0(lons5.lab$x1[lons5.lab$x1 < 0], "°W") 
 lons5.lab$x1 <- gsub("-","",lons5.lab$x1)
-lons5.lab$x2[lons5.lab$x2 > 0] <- paste0(lons5.lab$x2[lons5.lab$x2 > 0], "E") 
-lons5.lab$x2[lons5.lab$x2 < 0] <- paste0(lons5.lab$x2[lons5.lab$x2 < 0], "W") 
+lons5.lab$x2[lons5.lab$x2 > 0] <- paste0(lons5.lab$x2[lons5.lab$x2 > 0], "°E") 
+lons5.lab$x2[lons5.lab$x2 < 0] <- paste0(lons5.lab$x2[lons5.lab$x2 < 0], "°W") 
 lons5.lab$x2 <- gsub("-","",lons5.lab$x2)
 
 
 png("figures/krill proportion of habitat longitudinal around the continent smoothed 2.png",units="cm",
     res=800, width=20, height=12)
 
-opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
+opar <- par(mfrow=c(1,1), mar=c(5,5,2,1))
 col_used <- c(brewer.pal(5,"Set3")[c(4,5,2)])
 plot(movingFun(poly.out2$e.sup.rel,6,circular = T),type="l",
      xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.045),col=col_used[1],lwd=3)
@@ -472,6 +476,7 @@ abline(v=c(21, 45),lty=3)
 axis(1,at=seq(1,74,4),labels = lons5.lab[,1][seq(1,74,4)],las=2)
 # invisible(lapply(seq(1,74,4), function(i) {axis(1, at=i, labels = parse(text=lons5.lab[,1][i]),las=2)}))
 axis(3,at=c(11,33,60),labels = c("ATLANTIC SECTOR","INDIAN SECTOR","PACIFIC SECTOR"),las=1, tick=F,line = -1)
+mtext("Longitude", 1, line = 3.5)
 legend("topright",legend=c("Antarctic krill","Ice krill"),pt.bg=col_used[1:2],pch=22,box.col="transparent",bg="transparent")
 par(opar)
 
@@ -499,7 +504,7 @@ poly_section <- lapply(X = 1:nrow(lons),
 poly_section <- st_sfc(poly_section, crs = 4326)
 poly_section <- st_transform(poly_section, south_pole_equal_area.proj)
 # poly_section <- st_intersection(poly_section, circumpolar)
-poly.out     <- data.frame(section = c("ATL","IND","PAC"),
+sector.out     <- data.frame(section = c("ATL","IND","PAC"),
                            e.sup.area = 0,
                            e.cry.area = 0,
                            over.area  = 0,
@@ -507,16 +512,16 @@ poly.out     <- data.frame(section = c("ATL","IND","PAC"),
 
 for(i in 1:3){
   poly.result <- mask(e_overlap,as_Spatial(st_zm(poly_section[i])))
-  poly.out$total.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[2:4]))*100/1000000
-  poly.out$over.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[4]))*100/1000000
-  poly.out$e.sup.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[2]))*100/1000000
-  poly.out$e.cry.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[3]))*100/1000000
+  sector.out$total.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[2:4]))*100/1000000
+  sector.out$over.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[4]))*100/1000000
+  sector.out$e.sup.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[2]))*100/1000000
+  sector.out$e.cry.area[i] <- sum(as.numeric(table(factor(values(poly.result),levels=c(0:3)))[3]))*100/1000000
 }
-poly.out[,2] <- poly.out[,2]+poly.out[,4]
-poly.out[,3] <- poly.out[,3]+poly.out[,4]
-poly.out[,2] <- poly.out[,2]/sum(poly.out[,2])
-poly.out[,3] <- poly.out[,3]/sum(poly.out[,3])
-poly.out[,4] <- poly.out[,4]/sum(poly.out[,4])
+sector.out[,2] <- sector.out[,2]+sector.out[,4]
+sector.out[,3] <- sector.out[,3]+sector.out[,4]
+sector.out[,2] <- sector.out[,2]/sum(sector.out[,2])
+sector.out[,3] <- sector.out[,3]/sum(sector.out[,3])
+sector.out[,4] <- sector.out[,4]/sum(sector.out[,4])
 write.table(poly.out, file = "data/proportion of habitat by ocean sectors.txt")
 
 
@@ -525,7 +530,7 @@ png("figures/krill proportion of habitat by ocean sectors.png",units="cm",
 
 opar <- par(mfrow=c(1,1), mar=c(3,5,2,1))
 cols_bar <- c(brewer.pal(6,"Accent"))[3:5]
-barplot((as.matrix(poly.out[,2:4])),las=1,xaxt="n",
+barplot((as.matrix(sector.out[,2:4])),las=1,xaxt="n",
         ylab="Proportion of habitat", col=cols_bar, border=1)
 axis(4, at =c(0.15, 0.45, 0.8), labels = c("ATLANTIC SECTOR", "INDIAN SECTOR", "PACIFIC SECTOR"),tick=F, line = -1)
 axis(1, at =c(0.7, 1.9, 3.1), labels = c("Antarctic","Ice","area of"),tick=F, line = -0.5)
@@ -536,50 +541,103 @@ dev.off()
 
 
 
+# 2 panel ocean sector figure
+
+png("figures/krill proportion of habitat longitudinal and by ocean sector around the continent.png",units="cm", res=800, width=30, height=18)
+
+opar <- par(mfrow=c(1,1), mar=c(4,4,2,1))
+par(fig=c(0,0.8,0,1))
+col_used <- c(brewer.pal(5,"Set3")[c(4,5,2)])
+plot(movingFun(poly.out2$e.sup.rel,6,circular = T),type="l",
+     xaxt="n",las=1,xlab="",ylab="Proportion of habitat",ylim=c(0,0.045),col=col_used[1],lwd=3)
+polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.sup.rel.lci,6,circular = T), rev(movingFun(poly.out2$e.sup.rel.uci,6,circular = T))),
+        col = alpha(col_used[1], 0.2), border= "transparent")
+lines(movingFun(poly.out2$e.sup.rel,6,circular = T),type="l",col=col_used[1],lwd=3)
+polygon(x = c(1:72, rev(1:72)), y = c(movingFun(poly.out2$e.cry.rel.lci,6,circular = T), rev(movingFun(poly.out2$e.cry.rel.uci,6,circular = T))),
+        col = alpha(col_used[2], 0.2), border= "transparent")
+lines(movingFun(poly.out2$e.cry.rel,6,circular = T),type="l",col=col_used[2],lwd=3)
+abline(v=c(21, 45),lty=3)
+# axis(1,at=seq(1,74,4),labels = lons5.lab[,1][seq(1,74,4)],las=2, srt = 45)
+axis(1,at=seq(1,74,4),labels = NA,las=2, srt = 45)
+mtext('a)', side=3, line= -0.5, at=-7, cex=2)
+
+text(x = seq(1,74,4),
+     y = par("usr")[3]-0.0015,
+     labels = lons5.lab[,1][seq(1,74,4)],
+     xpd = NA,
+     srt = 35,
+     adj = 0.965,
+     cex = 1)
+
+axis(3,at=c(11,33,60),labels = c("ATLANTIC SECTOR","INDIAN SECTOR","PACIFIC SECTOR"),las=1, tick=F,line = -1)
+mtext("Longitude", 1, line = 2.9)
+legend("topright",legend=c("Antarctic krill","Ice krill"),pt.bg=col_used[1:2],pch=22,box.col="transparent",bg="transparent")
+
+
+par(fig=c(0.8,1,0,1),new=T, mar=c(4,3.8,2,1))
+cols_bar <- c(brewer.pal(6,"Accent"))[3:5]
+barplot((as.matrix(sector.out[,2:4])),las=1,xaxt="n", density = c(20,0,40), angle = c(45,0,0),
+        ylab="Proportion of habitat", col=1, border=1)
+axis(4, at =c(0.15, 0.45, 0.8), labels = c("ATLANTIC SECTOR", "INDIAN SECTOR", "PACIFIC SECTOR"),tick=F, line = -1)
+mtext('b)', side=3, line= -0.5, at=-1.7, cex=2)
+# axis(1, at =c(0.7, 1.9, 3.1), labels = c("Antarctic","Ice","area of"),tick=F, line = -0.5)
+# axis(1, at =c(0.7, 1.9, 3.1), labels = c("krill","krill","overlap"),tick=F, line = 0.5)
+text(x = c(0.7, 1.9, 3.1),
+     y = par("usr")[3]-0.0045,
+     labels = c("Antarctic krill","Ice krill","Area of overlap"),
+     xpd = NA,
+     srt = 35,
+     adj = 0.965,
+     cex = 1)
+
+par(opar)
+
+dev.off()
+
 
 
 
 
 # 4 panel figure
-
-png("figures/E.superba and E.crystallorophias 4 panel figure v3.png", res = 800, width=40, height = 40, units="cm")
+cols_used <- viridis(100)
+png("figures/E.superba and E.crystallorophias 4 panel figure v6.png", res = 800, width=40, height = 40, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 plot(st_geometry(model.domain),lty=2)  
-plot(mask(es_mean, model.domain),zlim=c(0,1000), add=T, legend =F)
+plot(mask(es_mean, model.domain),zlim=c(0,1000), add=T, legend =F, col = cols_used)
 # plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 
-plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
-text(-1600, -3450, "PF",cex=0.7, col=1)
-plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
-text(-300, -3050, "SACCF",cex=0.7, col=1)
-contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
-text(2000, -2800, "ICE",cex=0.7, col=1)
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, col=grey(1),lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=1, col=grey(1))
+plot(st_geometry(SACCF_fronts), add=T, col=grey(1),lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=1, col=grey(1))
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F, col = grey(1))
+text(2400, -2400, "ICE",cex=1, col=grey(1))
 
 plot(st_geometry(circumpolar),add=T)
-plot(es_mean,legend.only = T, zlim=c(0,1000), 
+plot(es_mean,legend.only = T, zlim=c(0,1000), col = cols_used,  
      axis.args=list(at=c(0,1000), labels= c(0, 1),
-                    cex.axis=1,tick=F,line=-0.2),
-     legend.args=list(text="probability", side=4, font=2, line=2.5, cex=1),
-     legend.width=0.2, legend.shrink=0.75,
+                    cex.axis=1.2,tick=F,line=-0.2),
+     legend.args=list(text="probability", side=4, font=2, line=2.5, cex=1.7),
+     legend.width=0.2, legend.shrink=1,
      smallplot=c(0.85,0.87, 0.03,0.17))
 mtext('a)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 
 plot(st_geometry(circumpolar))
-plot(mask(ec_mean, model.domain),zlim=c(0,1000), add=T, legend =F)
+plot(mask(ec_mean_all, model.domain),zlim=c(0,1000), add=T, legend =F, col = cols_used)
 # plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border=grey(0.7),col=grey(0.7),lwd=0.1)
 plot(st_geometry(st_intersection(land, circumpolar)),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 
-plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
-text(-1600, -3450, "PF",cex=0.7, col=1)
-plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
-text(-300, -3050, "SACCF",cex=0.7, col=1)
-contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
-text(2000, -2800, "ICE",cex=0.7, col=1)
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, col=grey(1),lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=1, col=grey(1))
+plot(st_geometry(SACCF_fronts), add=T, col=grey(1),lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=1, col=grey(1))
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F, col = grey(1))
+text(2400, -2400, "ICE",cex=1, col=grey(1))
 
 plot(st_geometry(circumpolar),add=T)
 mtext('b)', side=3, line= -2.5, at=-4350, cex=2.5)
@@ -592,13 +650,19 @@ plot(es_pol_hatch$geometry, col = cols_used[2], add=T, lwd =0.5)
 plot(ec_pol_hatch$geometry, col = cols_used[3], add=T, lwd =0.5)
 plot(es_pol, border = cols_used[2], add=T, lwd =0.5)
 plot(ec_pol, border = cols_used[3], add=T, lwd =0.5)
-plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
+# plot(st_geometry(ccamlr_domains_crop), add=T, border=grey(0.4),lty=3)
 plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
 plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
+
+plot(st_geometry(st_intersection(PF_fronts,circumpolar)), add=T, border=1,lty=2, lwd=0.8)
+text(-1600, -3450, "PF",cex=1, col=1)
+plot(st_geometry(SACCF_fronts), add=T, border=1,lty=1, lwd=0.8)
+text(-300, -3050, "SACCF",cex=1, col=1)
+contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0.8, drawlabels = F)
+text(2400, -2400, "ICE",cex=1, col=1)
+
 plot(circumpolar, add=T)
-plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
-legend("bottomright",legend=c("No data","Antarctic krill","Ice krill"),pch=22,
-       pt.bg = c("white",cols_used[2:3]), col = 1, box.col = "transparent", cex = 1.3)
+# plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
 mtext('c)', side=3, line= -2.5, at=-4350, cex=2.5)
 
 
@@ -611,15 +675,20 @@ plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 plot(circumpolar, add=T)
 plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
 mtext('d)', side=3, line= -2.5, at=-4350, cex=2.5)
-
 par(opar)
+
+par(mar=c(0,0,0,0))
+legend("bottom",legend=c("No data","Antarctic krill","Ice krill"),pch=22,
+       pt.bg = c("white",cols_used[2:3]), col = 1, box.col = "transparent", cex = 1.7)
+par(opar)
+
 dev.off()
 
 
 
 
 
-# 2 panel figure
+# 4 panel figure sd + cv
 
 png("figures/E.superba and E.crystallorophias sd and cv.png", res = 800, width=40, height = 40, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))

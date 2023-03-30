@@ -83,9 +83,12 @@ env.init.selected <- subset(env, c(
   "OCCCI_bd","OCCCI_bm",
   "WOA_si_0",
   "bath","dis_1000","dis_ice.pol",
-  "Pellichero_ml_depth", 'pca'))
+  "Pellichero_ml_depth", 'pca',
+  env.subset.list))
 
-names(env.init.selected) <- c("ICEDUR", "ICEMELT", "ICECONC", "ICEPERS", "MIZ", "SSS", "S200", "BD", "BM", "SSI", "BATH", "DIS","ICEPOL", "MLD", "PCA")
+names(env.init.selected) <- c("ICEDUR", "ICEMELT", "ICECONC", "ICEPERS", "MIZ", "SSS", "S200", 
+                              "BD", "BM", "SSI", "BATH", "DIS","ICEPOL", "MLD", "PCA",
+                              "SST","T200","SOX")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # test colinearity of covariates across model domain --------
@@ -109,10 +112,15 @@ rect.hclust(hc,h=0.2)
 par(opar)
 dev.off()
 
-png(paste0("figures/Colinearity of env covariates across model domain.png"), res = 800, width=20, height = 20, units="cm")
-corrplot.mixed(M, order = 'hclust', upper = "square", tl.pos = "lt", cl.cex = 0.9, tl.cex = 0.9, number.cex = 0.7)
+png(paste0("figures/Colinearity of env covariates across model domain.png"), res = 800, width=20, height = 18, units="cm")
+corrplot.mixed(M, order = 'hclust', upper = "square", tl.pos = "lt", 
+               cl.cex = 0.9, tl.cex = 0.9, number.cex = 0.7,
+               tl.col = c(1,grey(0.8),1,grey(0.8),rep(1,6),grey(0.8),1,grey(0.8),grey(0.8),rep(1,3),grey(0.8)))
 dev.off()
 
+# test colinearity of covariates in model domain using VIF
+vif3.select <- vifstep(subset(env.cor.test, names(env.init.selected)[!names(env.init.selected) %in% c("SST","T200","SOX")]), th = 10)
+vif3.select
 
 
 # remove colinear parameters at VIF cutoff th = 10

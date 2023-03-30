@@ -120,7 +120,7 @@ sea.col <- brewer.pal(9,"Purples")[9]
 
 
 # setwd(maud_directory)
-png("figures/study area v4.png", res = 800, width=20, height = 20, units="cm")
+png("figures/study area v5.png", res = 800, width=20, height = 20, units="cm")
 par(mar=rep(0,4))
 plot(st_geometry(grat),lty=2)  
 plot(mask(bath, circumpolar),  zlim=c(-1000,0), add=T, legend =F, col=rev(bb[2]))
@@ -171,7 +171,7 @@ text(-2500, 3210, "Georgia",cex=island.cex, col=island.col,font=island.font)
 text(-2200, 2550, "South Orkney",cex=island.cex, col=island.col,font=island.font)
 text(-2200, 2400, "Islands",cex=island.cex, col=island.col,font=island.font)
 
-text(-2450, 1850, "WAP", cex=island.cex+0.1, col=island.col,font=island.font)
+text(-2630, 1080, "WAP", cex=island.cex+0.1, col=island.col,font=island.font)
 
 text(400, 3800, "Bouvet Island", cex=island.cex, col=island.col,font=island.font)
 
@@ -218,12 +218,12 @@ text(0, -2000, "Sea", cex=sea.cex, col=sea.col)
 text(-1800, -1500, "Amundsen", cex=sea.cex, col=sea.col)
 text(-1800, -1700, "Sea", cex=sea.cex, col=sea.col)
 
-text(-3000,  150, "Bellinghausen", cex=sea.cex, col=sea.col)
+text(-3000,  150, "Bellingshausen", cex=sea.cex, col=sea.col)
 text(-3000, -50, "Sea", cex=sea.cex, col=sea.col)
 
 # legend("bottomright", legend = rev(c("5000-10000", "4000-5000", "3000-4000","2000-3000","1000-2000","0-1000")),
 #        fill = (bb[2:8]),bty="n", title  ="depth [m]", border = "transparent")
-legend(3000, -3000, legend = rev(c("5000 - 10000", "4000 - 5000", "3000 - 4000","2000 - 3000","1000 - 2000","0 - 1000")),
+legend(3000, -3000, legend = rev(c("5000 - 8000", "4000 - 5000", "3000 - 4000","2000 - 3000","1000 - 2000","0 - 1000")),
        pt.bg = (bb[2:7]),bty="n", title  ="depth [m]", col = "transparent",pt.cex=2.2,pch=22, text.font =1, cex=0.8)
 # plot(-bath,legend.only = T, zlim=c(6000,0), col = blue,
 #      axis.args=list(#at=seq(0,10000,3000), #brks,
