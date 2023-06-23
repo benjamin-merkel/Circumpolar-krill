@@ -543,7 +543,7 @@ dev.off()
 
 # 2 panel ocean sector figure
 
-png("figures/krill proportion of habitat longitudinal and by ocean sector around the continent.png",units="cm", res=800, width=30, height=18)
+jpeg("figures/figure 3.jpeg",units="cm", res=800, width=30, height=18)
 
 opar <- par(mfrow=c(1,1), mar=c(4,4,2,1))
 par(fig=c(0,0.8,0,1))
@@ -600,7 +600,7 @@ dev.off()
 
 # 4 panel figure
 cols_used <- viridis(100)
-png("figures/E.superba and E.crystallorophias 4 panel figure v6.png", res = 800, width=40, height = 40, units="cm")
+jpeg("figures/figure 2.jpeg", res = 800, width=40, height = 40, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 plot(st_geometry(model.domain),lty=2)  

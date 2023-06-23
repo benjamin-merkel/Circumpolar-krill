@@ -129,8 +129,7 @@ dev.off()
 chosen.pred <- c("MLD", "PCA", "DIS", "SSS", "BM", "MIZ")
 
 setwd(base_dir)
-png(paste0("figures/both krill GBM circumpolar 6 most important marginal response curves_Dec-Mar.png"),
-    units="cm",res=500,width=17, height=21)
+jpeg("figures/figure 4.jpeg", units="cm",res=500,width=17, height=21)
 par(mfrow = c(3, 2),mar=c(4, 0.2, 1.1, 0.2), oma = c(0, 4, 0, 0))
 for(i in 1:length(chosen.pred)){
   xx_Es <- Biomodresponse_Es$tab[Biomodresponse_Es$tab$expl.name==chosen.pred[i],c("expl.val","pred.val")]

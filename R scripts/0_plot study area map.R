@@ -120,7 +120,7 @@ sea.col <- brewer.pal(9,"Purples")[9]
 
 
 # setwd(maud_directory)
-png("figures/study area v5.png", res = 800, width=20, height = 20, units="cm")
+jpeg("figures/figure 1.jpeg", res = 800, width=20, height = 20, units="cm")
 par(mar=rep(0,4))
 plot(st_geometry(grat),lty=2)  
 plot(mask(bath, circumpolar),  zlim=c(-1000,0), add=T, legend =F, col=rev(bb[2]))
