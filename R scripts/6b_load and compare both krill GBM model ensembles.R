@@ -543,7 +543,7 @@ dev.off()
 
 # 2 panel ocean sector figure
 
-jpeg("figures/figure 3.jpeg",units="cm", res=800, width=30, height=18)
+jpeg("figures/figure 3.jpeg",units="cm", res=600, width=30, height=18)
 
 opar <- par(mfrow=c(1,1), mar=c(4,4,2,1))
 par(fig=c(0,0.8,0,1))
@@ -600,7 +600,7 @@ dev.off()
 
 # 4 panel figure
 cols_used <- viridis(100)
-jpeg("figures/figure 2.jpeg", res = 800, width=40, height = 40, units="cm")
+jpeg("figures/figure 2.jpeg", res = 500, width=30, height = 30, units="cm")
 opar <- par(mfrow=c(2,2), mar=c(0,0,0,0))
 
 plot(st_geometry(model.domain),lty=2)  
@@ -619,11 +619,11 @@ text(2400, -2400, "ICE",cex=1, col=grey(1))
 plot(st_geometry(circumpolar),add=T)
 plot(es_mean,legend.only = T, zlim=c(0,1000), col = cols_used,  
      axis.args=list(at=c(0,1000), labels= c(0, 1),
-                    cex.axis=1.2,tick=F,line=-0.2),
-     legend.args=list(text="probability", side=4, font=2, line=2.5, cex=1.7),
-     legend.width=0.2, legend.shrink=1,
+                    cex.axis=1.1,tick=F,line=-0.2),
+     legend.args=list(text="probability", side=4, font=2, line=2.5, cex=1.4),
+     legend.width=0.2, legend.shrink=0.8,
      smallplot=c(0.85,0.87, 0.03,0.17))
-mtext('a)', side=3, line= -2.5, at=-4350, cex=2.5)
+mtext('a)', side=3, line= -2.5, at=-4350, cex=2.3)
 
 
 plot(st_geometry(circumpolar))
@@ -640,7 +640,7 @@ contour(rast(env$NSIDC_ice_duration), levels = c(10), lty = c(3), add=T, lwd = 0
 text(2400, -2400, "ICE",cex=1, col=grey(1))
 
 plot(st_geometry(circumpolar),add=T)
-mtext('b)', side=3, line= -2.5, at=-4350, cex=2.5)
+mtext('b)', side=3, line= -2.5, at=-4350, cex=2.3)
 
 
 cols_used <- c(grey(0.9),brewer.pal(5,"Set3")[c(4,5,1)])
@@ -663,7 +663,7 @@ text(2400, -2400, "ICE",cex=1, col=1)
 
 plot(circumpolar, add=T)
 # plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
-mtext('c)', side=3, line= -2.5, at=-4350, cex=2.5)
+mtext('c)', side=3, line= -2.5, at=-4350, cex=2.3)
 
 
 plot(st_geometry(circumpolar))
@@ -674,12 +674,12 @@ plot(st_geometry(ice_shelf),add=T,border="grey",col="grey",lwd=0.1)
 plot(st_geometry(land),add=T,border=grey(0.4),col=grey(0.4),lwd=.1)
 plot(circumpolar, add=T)
 plot(st_geometry(st_point_on_surface(ccamlr_domains_crop)), add=T, col=grey(0.2), lty=3,pch=as.character(c(9,1,7,3,2,4,5,6,8)), cex=1.5)
-mtext('d)', side=3, line= -2.5, at=-4350, cex=2.5)
+mtext('d)', side=3, line= -2.5, at=-4350, cex=2.3)
 par(opar)
 
 par(mar=c(0,0,0,0))
 legend("bottom",legend=c("No data","Antarctic krill","Ice krill"),pch=22,
-       pt.bg = c("white",cols_used[2:3]), col = 1, box.col = "transparent", cex = 1.7)
+       pt.bg = c("white",cols_used[2:3]), col = 1, box.col = "transparent", cex = 1.4)
 par(opar)
 
 dev.off()
